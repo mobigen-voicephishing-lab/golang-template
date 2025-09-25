@@ -43,6 +43,18 @@ func Init(log *logrus.Logger, debug bool) (r *Router, err error) {
 	// and handles the control to the centralized HTTPErrorHandler.
 	r.Use(middleware.Recover())
 
+	// CORS default
+	// 모든 원격지에서 오는 모든 메서드를 허용합니다.
+	r.Use(middleware.CORS())
+
+	// CORS restricted
+	// `https://jblim.mobigen.com`과 `https://mobigen.com`로부터 오는 요청 중
+	// GET, PUT, POST or DELETE 메서드를 허용합니다.
+	//r.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+	//	AllowOrigins: []string{"https://jblim.mobigen.com", "https://mobigen.com"},
+	//	AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
+	//}))
+
 	// ${id}: HeaderXRequestID
 	// ${remote_ip} : RealIP
 	// ${host} : Host

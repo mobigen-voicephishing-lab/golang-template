@@ -11,6 +11,9 @@ type Configuration struct {
 	Log       LogConfiguration       `yaml:"log" json:"log"`
 	Datastore DatastoreConfiguration `yaml:"datastore" json:"datastore"`
 	Server    ServerConfiguration    `yaml:"server" json:"server"`
+	// TODO : Need Config? Add User Definition Configuration
+	// yaml inline option not supported in viper...
+	// Config	  models.Configuration `yaml:"config" json:"config"`
 }
 
 // LogConfiguration  로그 설정 정보
