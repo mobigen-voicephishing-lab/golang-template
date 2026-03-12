@@ -1,10 +1,12 @@
 package controllers
 
+//go:generate mockgen -destination=../mocks/mock_sample_usecase.go -package=mocks github.com/mobigen/golang-web-template/controllers SampleUsecase
+
 import (
 	"net/http"
 	"strconv"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/sirupsen/logrus"
 
 	"github.com/mobigen/golang-web-template/common"
@@ -35,7 +37,7 @@ func (Sample) New(usecase SampleUsecase) *Sample {
 }
 
 // GetAll returns all of sample as JSON object.
-func (controller *Sample) GetAll(c echo.Context) error {
+func (controller *Sample) GetAll(c *echo.Context) error {
 	samples, err := controller.Usecase.GetAll()
 	if err != nil {
 		if err == common.ErrNoHaveResult {
@@ -47,7 +49,7 @@ func (controller *Sample) GetAll(c echo.Context) error {
 }
 
 // GetByID return sample whoes ID mathces
-func (controller *Sample) GetByID(c echo.Context) error {
+func (controller *Sample) GetByID(c *echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err)
@@ -63,7 +65,7 @@ func (controller *Sample) GetByID(c echo.Context) error {
 }
 
 // Create create a new ...
-func (controller *Sample) Create(c echo.Context) error {
+func (controller *Sample) Create(c *echo.Context) error {
 	input := new(models.Sample)
 	c.Bind(input)
 	sample, err := controller.Usecase.Create(input)
@@ -74,7 +76,7 @@ func (controller *Sample) Create(c echo.Context) error {
 }
 
 // Update update from input
-func (controller *Sample) Update(c echo.Context) error {
+func (controller *Sample) Update(c *echo.Context) error {
 	input := new(models.Sample)
 	c.Bind(input)
 	sample, err := controller.Usecase.Update(input)
@@ -85,7 +87,7 @@ func (controller *Sample) Update(c echo.Context) error {
 }
 
 // Delete delete sample from id
-func (controller *Sample) Delete(c echo.Context) error {
+func (controller *Sample) Delete(c *echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err)

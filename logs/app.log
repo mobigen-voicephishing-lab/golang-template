@@ -1,0 +1,76 @@
+2026-03-12 19:49:08.048 [ERRO] [logger.go        : 119] ==========================================================================================
+2026-03-12 19:49:08.048 [ERRO] [logger.go        : 120]  
+2026-03-12 19:49:08.048 [ERRO] [logger.go        : 121]                          START. WEB-PLATFORM:---
+2026-03-12 19:49:08.048 [ERRO] [logger.go        : 123]  
+2026-03-12 19:49:08.048 [ERRO] [logger.go        : 124]                                                   Copyright(C) 2026 Mobigen Corporation.  
+2026-03-12 19:49:08.048 [ERRO] [logger.go        : 125]  
+2026-03-12 19:49:08.048 [ERRO] [logger.go        : 126] ==========================================================================================
+2026-03-12 19:49:08.050 [DEBU] [gorm.go          : 263] [ GORM ] Time[ 0.028 ] Row[ - ] Query[ SELECT count(*) FROM sqlite_master WHERE type='table' AND name="samples" ]
+2026-03-12 19:49:08.050 [DEBU] [gorm.go          : 265] [ GORM ] Time[ 0.110 ] Row[ 1 ] Query[ SELECT sql FROM sqlite_master WHERE type IN ("table","index") AND tbl_name = "samples" AND sql IS NOT NULL order by type = "table" desc ]
+2026-03-12 19:49:08.050 [DEBU] [gorm.go          : 263] [ GORM ] Time[ 0.035 ] Row[ - ] Query[ SELECT * FROM `samples` LIMIT 1 ]
+2026-03-12 19:49:08.050 [ERRO] [main.go          : 132] [ DataStore ] Initialze ........................................................... [ OK ]
+2026-03-12 19:49:08.050 [ERRO] [main.go          : 144] [ Router ] Initialze .............................................................. [ OK ]
+2026-03-12 19:49:08.050 [ERRO] [main.go          : 184] [ ALL ] Initialze ................................................................. [ OK ]
+2026-03-12 19:49:08.050 [ERRO] [injector-core.go :  36] [ PATH ] /api/v1/sample ........................................................... [ OK ]
+2026-03-12 19:49:08.051 [ERRO] [main.go          : 200] [ Signal ] Listener Start ......................................................... [ OK ]
+2026-03-12 19:49:08.051 [ERRO] [main.go          : 210] [ Router ] Listener Start ......................................................... [ OK ]
+2026-03-12 19:49:11.206 [ERRO] [main.go          : 221] [ SIGNAL ] Receive [ interrupt ]
+2026-03-12 19:49:11.207 [ERRO] [main.go          : 238] [ DataStore ] Shutdown ............................................................ [ OK ]
+2026-03-12 19:49:11.207 [ERRO] [main.go          : 242] [ Router ] Shutdown ............................................................... [ OK ]
+2026-03-12 19:49:11.207 [ERRO] [logger.go        : 131] ==========================================================================================
+2026-03-12 19:49:11.207 [ERRO] [logger.go        : 132]  
+2026-03-12 19:49:11.207 [ERRO] [logger.go        : 133]                         WEB-PLATFORM Bye Bye.
+2026-03-12 19:49:11.207 [ERRO] [logger.go        : 134]  
+2026-03-12 19:49:11.207 [ERRO] [logger.go        : 135]                                                   Copyright(C) 2026 Mobigen Corporation.  
+2026-03-12 19:49:11.207 [ERRO] [logger.go        : 136]  
+2026-03-12 19:49:11.207 [ERRO] [logger.go        : 137] ==========================================================================================
+2026-03-12 20:02:33.938 [ERRO] [logger.go        : 119] ==========================================================================================
+2026-03-12 20:02:33.938 [ERRO] [logger.go        : 120]  
+2026-03-12 20:02:33.938 [ERRO] [logger.go        : 121]                          START. WEB-PLATFORM:---
+2026-03-12 20:02:33.938 [ERRO] [logger.go        : 123]  
+2026-03-12 20:02:33.938 [ERRO] [logger.go        : 124]                                                   Copyright(C) 2026 Mobigen Corporation.  
+2026-03-12 20:02:33.938 [ERRO] [logger.go        : 125]  
+2026-03-12 20:02:33.938 [ERRO] [logger.go        : 126] ==========================================================================================
+2026-03-12 20:02:33.940 [DEBU] [gorm.go          : 263] [ GORM ] Time[ 0.030 ] Row[ - ] Query[ SELECT count(*) FROM sqlite_master WHERE type='table' AND name="samples" ]
+2026-03-12 20:02:33.940 [DEBU] [gorm.go          : 265] [ GORM ] Time[ 0.086 ] Row[ 1 ] Query[ SELECT sql FROM sqlite_master WHERE type IN ("table","index") AND tbl_name = "samples" AND sql IS NOT NULL order by type = "table" desc ]
+2026-03-12 20:02:33.941 [DEBU] [gorm.go          : 263] [ GORM ] Time[ 0.038 ] Row[ - ] Query[ SELECT * FROM `samples` LIMIT 1 ]
+2026-03-12 20:02:33.941 [ERRO] [main.go          : 132] [ DataStore ] Initialze ........................................................... [ OK ]
+2026-03-12 20:02:33.941 [ERRO] [main.go          : 144] [ Router ] Initialze .............................................................. [ OK ]
+2026-03-12 20:02:33.941 [ERRO] [main.go          : 184] [ ALL ] Initialze ................................................................. [ OK ]
+2026-03-12 20:02:33.941 [ERRO] [injector-core.go :  36] [ PATH ] /api/v1/sample ........................................................... [ OK ]
+2026-03-12 20:02:33.941 [ERRO] [main.go          : 200] [ Signal ] Listener Start ......................................................... [ OK ]
+2026-03-12 20:02:33.941 [ERRO] [main.go          : 210] [ Router ] Listener Start ......................................................... [ OK ]
+2026-03-12 20:02:38.942 [ERRO] [main.go          : 227] I'm Alive...
+2026-03-12 20:02:43.796 [INFO] [server.go        :  50] 2026-03-12 20:02:43.796 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/index.html 200 Latency[ 1ms ]
+2026-03-12 20:02:43.814 [INFO] [server.go        :  50] 2026-03-12 20:02:43.813 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui.css 200 Latency[ 0s ]
+2026-03-12 20:02:43.817 [INFO] [server.go        :  50] 2026-03-12 20:02:43.817 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui-standalone-preset.js 200 Latency[ 1ms ]
+2026-03-12 20:02:43.823 [INFO] [server.go        :  50] 2026-03-12 20:02:43.815 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui-bundle.js 200 Latency[ 8ms ]
+2026-03-12 20:02:43.904 [INFO] [server.go        :  50] 2026-03-12 20:02:43.904 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/doc.json 200 Latency[ 0s ]
+2026-03-12 20:02:43.914 [INFO] [server.go        :  50] 2026-03-12 20:02:43.914 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/favicon-32x32.png 200 Latency[ 0s ]
+2026-03-12 20:02:43.944 [ERRO] [main.go          : 227] I'm Alive...
+2026-03-12 20:02:48.945 [ERRO] [main.go          : 227] I'm Alive...
+2026-03-12 20:02:53.946 [ERRO] [main.go          : 227] I'm Alive...
+2026-03-12 20:02:58.826 [INFO] [server.go        :  50] 2026-03-12 20:02:58.825 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/index.html 200 Latency[ 0s ]
+2026-03-12 20:02:58.837 [INFO] [server.go        :  50] 2026-03-12 20:02:58.837 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui.css 200 Latency[ 0s ]
+2026-03-12 20:02:58.837 [INFO] [server.go        :  50] 2026-03-12 20:02:58.837 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui-standalone-preset.js 200 Latency[ 0s ]
+2026-03-12 20:02:58.840 [INFO] [server.go        :  50] 2026-03-12 20:02:58.837 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui-bundle.js 200 Latency[ 2ms ]
+2026-03-12 20:02:58.889 [INFO] [server.go        :  50] 2026-03-12 20:02:58.889 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/doc.json 200 Latency[ 0s ]
+2026-03-12 20:02:58.891 [INFO] [server.go        :  50] 2026-03-12 20:02:58.891 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/favicon-32x32.png 200 Latency[ 0s ]
+2026-03-12 20:02:58.948 [ERRO] [main.go          : 227] I'm Alive...
+2026-03-12 20:02:59.540 [INFO] [server.go        :  50] 2026-03-12 20:02:59.540 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/index.html 200 Latency[ 0s ]
+2026-03-12 20:02:59.552 [INFO] [server.go        :  50] 2026-03-12 20:02:59.552 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui.css 200 Latency[ 0s ]
+2026-03-12 20:02:59.552 [INFO] [server.go        :  50] 2026-03-12 20:02:59.552 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui-standalone-preset.js 200 Latency[ 0s ]
+2026-03-12 20:02:59.556 [INFO] [server.go        :  50] 2026-03-12 20:02:59.552 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui-bundle.js 200 Latency[ 4ms ]
+2026-03-12 20:02:59.607 [INFO] [server.go        :  50] 2026-03-12 20:02:59.606 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/doc.json 200 Latency[ 0s ]
+2026-03-12 20:02:59.608 [INFO] [server.go        :  50] 2026-03-12 20:02:59.608 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/favicon-32x32.png 200 Latency[ 0s ]
+2026-03-12 20:03:00.108 [INFO] [server.go        :  50] 2026-03-12 20:03:00.108 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/index.html 200 Latency[ 0s ]
+2026-03-12 20:03:00.122 [INFO] [server.go        :  50] 2026-03-12 20:03:00.122 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui.css 200 Latency[ 0s ]
+2026-03-12 20:03:00.123 [INFO] [server.go        :  50] 2026-03-12 20:03:00.123 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui-standalone-preset.js 200 Latency[ 0s ]
+2026-03-12 20:03:00.125 [INFO] [server.go        :  50] 2026-03-12 20:03:00.122 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/swagger-ui-bundle.js 200 Latency[ 3ms ]
+2026-03-12 20:03:00.175 [INFO] [server.go        :  50] 2026-03-12 20:03:00.175 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/doc.json 200 Latency[ 0s ]
+2026-03-12 20:03:00.177 [INFO] [server.go        :  50] 2026-03-12 20:03:00.177 [DEBU] [echo-framework   :  - ] [ Router ] GET /swagger/favicon-32x32.png 200 Latency[ 0s ]
+2026-03-12 20:03:03.949 [ERRO] [main.go          : 227] I'm Alive...
+2026-03-12 20:03:08.950 [ERRO] [main.go          : 227] I'm Alive...
+2026-03-12 20:03:13.951 [ERRO] [main.go          : 227] I'm Alive...
+2026-03-12 20:03:18.953 [ERRO] [main.go          : 227] I'm Alive...
+2026-03-12 20:03:23.955 [ERRO] [main.go          : 227] I'm Alive...

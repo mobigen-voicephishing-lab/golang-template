@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -39,9 +38,9 @@ func (c *Context) InitLog() {
 func (c *Context) ReadEnv() error {
 	c.Env = new(appdata.Environment)
 	// Get Home
-	homePath := os.Getenv("HOME")
+	homePath := os.Getenv("APP_HOME")
 	if len(homePath) > 0 {
-		c.Log.Errorf("HOME : %s", homePath)
+		c.Log.Errorf("APP_HOME : %s", homePath)
 		c.Env.Home = homePath
 	} else {
 		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -70,14 +69,6 @@ func (c *Context) ReadEnv() error {
 	} else {
 		c.Env.LogLevel = "-"
 	}
-	// // Get LANG
-	// lang := os.Getenv("LANG")
-	// if len(lang) > 0 {
-	// 	c.Log.Errorf("LANG : %s", lang)
-	// 	c.Env.Lang = lang
-	// } else {
-	// 	c.Env.Lang = "ko"
-	// }
 
 	c.Log.Errorf("[ Env ] Read ...................................................................... [ OK ]")
 	return nil
@@ -99,11 +90,11 @@ func (c *Context) ReadConfig() error {
 	// Save
 	c.Conf = conf
 
-	// Set Watcher
-	c.CM.SetOnChanged(configPath, configName, configType,
-		func(conf interface{}) {
-			c.Log.Info("Next Level")
-		}, conf)
+	// Set Config Watcher
+	// c.CM.SetOnChanged(configPath, configName, configType,
+	// 	func(conf interface{}) {
+	// 		c.Log.Info("Next Level")
+	// 	}, conf)
 	c.Log.Errorf("[ Configuration ] Read ............................................................ [ OK ]")
 	return nil
 }
@@ -113,7 +104,7 @@ func (c *Context) SetLogger() error {
 	if c.Env.LogLevel != "-" {
 		c.Conf.Log.Level = c.Env.LogLevel
 	}
-	if err := c.Log.Setting(&c.Conf.Log); err != nil {
+	if err := c.Log.Setting(&c.Conf.Log, c.Env.Home); err != nil {
 		return err
 	}
 	c.Log.Start()
@@ -154,19 +145,6 @@ func (c *Context) InitRouter() error {
 	return nil
 }
 
-// InitMessages initialize for multi language
-func (c *Context) InitMessages() error {
-	// mm := common.Messages{}.New()
-	// mm.Log = c.Log
-	// mm.Path = c.Env.Home + "/messages"
-	// mm.Language = c.Env.Lang
-	// if err := mm.Initialize(); err != nil {
-	// 	return err
-	// }
-	c.Log.Errorf("[ Messages ] Initialze ............................................................ [ OK ]")
-	return nil
-}
-
 // Initialize env/config load and sub moduel init
 func Initialize() (*Context, error) {
 	c := new(Context)
@@ -201,12 +179,7 @@ func Initialize() (*Context, error) {
 		return nil, err
 	}
 
-	// Message(For Multi Language)
-	if err := c.InitMessages(); err != nil {
-		return nil, err
-	}
-
-	// TODO: Other Module Init
+	// Other Module Init
 
 	c.Log.Errorf("[ ALL ] Initialze ................................................................. [ OK ]")
 	return c, nil
@@ -223,7 +196,7 @@ func (c *Context) InitDepencyInjection() error {
 func (c *Context) StartSubModules() {
 	// Signal
 	signalChannel := make(chan os.Signal, 1)
-	signal.Notify(signalChannel, os.Interrupt, syscall.SIGKILL, syscall.SIGHUP, syscall.SIGTERM)
+	signal.Notify(signalChannel, os.Interrupt, syscall.SIGHUP, syscall.SIGTERM)
 	c.Log.Errorf("[ Signal ] Listener Start ......................................................... [ OK ]")
 
 	// Echo Framework
@@ -236,7 +209,7 @@ func (c *Context) StartSubModules() {
 	}()
 	c.Log.Errorf("[ Router ] Listener Start ......................................................... [ OK ]")
 
-	// TODO : Start Other Sub Modules
+	// Start Other Sub Modules
 
 	for {
 		select {
@@ -265,12 +238,10 @@ func (c *Context) StopSubModules() {
 		c.Log.Errorf("[ DataStore ] Shutdown ............................................................ [ OK ]")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(15*time.Second))
-	defer cancel()
-	c.Router.Shutdown(ctx)
+	c.Router.Shutdown()
 	c.Log.Errorf("[ Router ] Shutdown ............................................................... [ OK ]")
 
-	// TODO : 사용하는 서브 모듈(Goroutine)들이 안전하게 종료 될 수 있도록 종료 코드를 추가한다.
+	// 사용하는 서브 모듈(Goroutine)들이 안전하게 종료 될 수 있도록 종료 코드를 추가한다.
 }
 
 // @title Golang Web Template API
@@ -279,7 +250,7 @@ func (c *Context) StopSubModules() {
 
 // @contact.name API Support
 // @contact.url http://mobigen.com
-// @contact.email irisdev@mobigen.com
+// @contact.email jblim@mobigen.com
 
 // @host localhost:8080
 // @BashPath /

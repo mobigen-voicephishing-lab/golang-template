@@ -1,6 +1,5 @@
 definitions:
   appdata.VersionInfo:
-    type: object
     properties:
       buildHash:
         type: string
@@ -8,21 +7,19 @@ definitions:
         type: string
       version:
         type: string
-  controllers.HTTPResponse:
     type: object
+  controllers.HTTPResponse:
     properties:
       code:
         type: integer
-      data:
-        type: object
+      data: {}
       message:
         type: string
-      result:
-        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
-    email: irisdev@mobigen.com
+    email: jblim@mobigen.com
     name: API Support
     url: http://mobigen.com
   description: This is a golang web template server.

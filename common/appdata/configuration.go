@@ -11,7 +11,7 @@ type Configuration struct {
 	Log       LogConfiguration       `yaml:"log" json:"log"`
 	Datastore DatastoreConfiguration `yaml:"datastore" json:"datastore"`
 	Server    ServerConfiguration    `yaml:"server" json:"server"`
-	// TODO : Need Config? Add User Definition Configuration
+	// Need Config? Add User Definition Configuration
 	// yaml inline option not supported in viper...
 	// Config	  models.Configuration `yaml:"config" json:"config"`
 }
@@ -22,6 +22,7 @@ type LogConfiguration struct {
 	Level  string `yaml:"level" json:"level"`
 	// 파일 출력 시 옵션
 	SavePath      string `yaml:"savePath" json:"savePath"`
+	FileName      string `yaml:"fileName" json:"fileName"`
 	SizePerFileMb int32  `yaml:"sizePerFileMb" json:"sizePerFileMb"`
 	MaxOfDay      int32  `yaml:"maxOfDay" json:"maxOfDay"`
 	MaxAge        int32  `yaml:"maxAge" json:"maxAge"`
@@ -32,6 +33,7 @@ type LogConfiguration struct {
 const (
 	LogOutStdout string = "stdout"
 	LogOutFile   string = "file"
+	LogOutBoth   string = "both"
 )
 
 // CheckLogLevel check loglevel and return logrus log level

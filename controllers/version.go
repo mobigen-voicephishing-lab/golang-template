@@ -3,7 +3,7 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 
 	"github.com/mobigen/golang-web-template/common/appdata"
 )
@@ -24,7 +24,7 @@ func (Version) New() *Version {
 // @Produce  json
 // @success 200 {object} controllers.HTTPResponse{data=appdata.VersionInfo} "app info(name, version, hash)"
 // @Router /version [get]
-func (controller *Version) GetVersion(c echo.Context) error {
+func (controller *Version) GetVersion(c *echo.Context) error {
 	res := HTTPResponse{}.ReturnSuccess(
 		&appdata.VersionInfo{
 			Name:      appdata.Name,

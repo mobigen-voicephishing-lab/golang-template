@@ -1,5 +1,7 @@
 package services
 
+//go:generate mockgen -destination=../mocks/mock_sample_repository.go -package=mocks github.com/mobigen/golang-web-template/services SampleRepository
+
 import (
 	"github.com/mobigen/golang-web-template/models"
 )

@@ -2,13 +2,15 @@ package common
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/mobigen/golang-web-template/common/appdata"
-	formatter "github.com/mobigen/gologger"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // Logger struct have embedding logrus.Logger
@@ -22,7 +24,7 @@ var l *Logger
 func init() {
 	l = &Logger{logrus.New()}
 	l.SetOutput(os.Stdout)
-	f := &formatter.Formatter{
+	f := &Formatter{
 		TimestampFormat: "2006-01-02 15:04:05.000",
 		ShowFields:      true,
 	}
@@ -31,19 +33,24 @@ func init() {
 }
 
 // Setting log setting
-func (l *Logger) Setting(conf *appdata.LogConfiguration) error {
+func (l *Logger) Setting(conf *appdata.LogConfiguration, appHome string) error {
+	var writers []io.Writer
 	switch conf.Output {
 	case appdata.LogOutStdout:
-		l.SetOutput(os.Stdout)
+		writers = append(writers, os.Stdout)
 	case appdata.LogOutFile:
-		// TODO : Make Output And Set logrus output
-		// TODO : lumberjack customize
-		// // 파일 출력 시 옵션
-		// SavePath      string `yaml:"savePath" json:"savePath"`
-		// SizePerFileMb int32  `yaml:"sizePerFileMb" json:"sizePerFileMb"`
-		// MaxOfDay      int32  `yaml:"maxOfDay" json:"maxOfDay"`
-		// MaxAge        int32  `yaml:"maxAge" json:"maxAge"`
-		// Compress      bool   `yaml:"compress" json:"compress"`
+		writer, err := l.getFileOutput(conf, appHome)
+		if err != nil {
+			return fmt.Errorf("ERROR. Can't Initialize Log Output Setup")
+		}
+		writers = append(writers, writer)
+	case appdata.LogOutBoth:
+		writers = append(writers, os.Stdout)
+		writer, err := l.getFileOutput(conf, appHome)
+		if err != nil {
+			return fmt.Errorf("ERROR. Can't Initialize Log Output Setup")
+		}
+		writers = append(writers, writer)
 	default:
 		return fmt.Errorf("ERROR. Not Supported Log Output[ %s ]", conf.Output)
 	}
@@ -51,8 +58,33 @@ func (l *Logger) Setting(conf *appdata.LogConfiguration) error {
 	if err != nil {
 		return err
 	}
+	if len(writers) == 0 {
+		l.SetOutput(os.Stdout)
+	} else if len(writers) == 1 {
+		l.SetOutput(writers[0])
+	} else {
+		l.SetOutput(io.MultiWriter(writers...))
+	}
 	l.SetLogLevel(logrus.Level(lv))
 	return nil
+}
+
+// SetFileOutput
+func (l *Logger) getFileOutput(conf *appdata.LogConfiguration, appHome string) (io.Writer, error) {
+	savePath := conf.SavePath
+	if !filepath.IsAbs(savePath) {
+		savePath = filepath.Join(appHome, savePath)
+	}
+	fileName := savePath + "/" + conf.FileName
+
+	lj := &lumberjack.Logger{
+		Filename:   fileName,
+		MaxSize:    int(conf.SizePerFileMb),
+		MaxBackups: int(conf.MaxOfDay),
+		MaxAge:     int(conf.MaxAge),
+		Compress:   conf.Compress,
+	}
+	return lj, nil
 }
 
 // GetInstance return logger instance
@@ -89,7 +121,7 @@ func (l *Logger) Start() {
 	l.Errorf("                         START. %s:%s-%s",
 		strings.ToUpper(appdata.Name), appdata.Version, appdata.BuildHash)
 	l.Errorf(" ")
-	l.Errorf("%90s", "Copyright(C) 2021 Mobigen Corporation.  ")
+	l.Errorf("%90s", "Copyright(C) 2026 Mobigen Corporation.  ")
 	l.Errorf(" ")
 	l.Errorf("%s", LINE90)
 }
@@ -100,7 +132,7 @@ func (l *Logger) Shutdown() {
 	l.Errorf(" ")
 	l.Errorf("                        %s Bye Bye.", strings.ToUpper(appdata.Name))
 	l.Errorf(" ")
-	l.Errorf("%90s", "Copyright(C) 2021 Mobigen Corporation.  ")
+	l.Errorf("%90s", "Copyright(C) 2026 Mobigen Corporation.  ")
 	l.Errorf(" ")
 	l.Errorf("%s", LINE90)
 }
@@ -120,7 +152,7 @@ func (tw *testingWriter) Write(b []byte) (int, error) {
 func MakeTestLogger(tb testing.TB) *Logger {
 	l = &Logger{logrus.New()}
 	l.SetOutput(os.Stdout)
-	f := &formatter.Formatter{
+	f := &Formatter{
 		TimestampFormat: "2006-01-02 15:04:05.000",
 		ShowFields:      true,
 	}
