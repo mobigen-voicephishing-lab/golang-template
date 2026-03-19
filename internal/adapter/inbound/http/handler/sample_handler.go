@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v5"
-	"github.com/sirupsen/logrus"
 
 	"github.com/mobigen/golang-web-template/internal/adapter/inbound/http/dto"
 	"github.com/mobigen/golang-web-template/internal/domain"
@@ -55,12 +54,13 @@ func (a *sampleUsecaseAdapter) Delete(id int) (*domain.Sample, error) {
 
 // SampleHandler Sample HTTP 핸들러
 type SampleHandler struct {
-	Log     *logrus.Logger
+	Log     logger.Logger
 	Usecase SampleUsecase
 }
 
 // NewSampleHandler 메서드별 UseCase를 받아 SampleHandler 생성 (wire에서 사용)
 func NewSampleHandler(
+	log logger.Logger,
 	getAll *sample.GetAllUseCase,
 	getByID *sample.GetByIDUseCase,
 	create *sample.CreateUseCase,
@@ -68,7 +68,7 @@ func NewSampleHandler(
 	delete *sample.DeleteUseCase,
 ) *SampleHandler {
 	return &SampleHandler{
-		Log: logger.Logger{}.GetInstance().Logger,
+		Log: log,
 		Usecase: &sampleUsecaseAdapter{
 			getAll:  getAll,
 			getByID: getByID,
@@ -79,10 +79,10 @@ func NewSampleHandler(
 	}
 }
 
-// NewSampleHandlerFromUsecase 묶음 방식 UseCase를 받아 SampleHandler 생성 (대안)
-func NewSampleHandlerFromUsecase(usecase SampleUsecase) *SampleHandler {
+// NewSampleHandlerWithUsecase 묶음 방식 UseCase를 받아 SampleHandler 생성 (대안)
+func NewSampleHandlerWithUsecase(log logger.Logger, usecase SampleUsecase) *SampleHandler {
 	return &SampleHandler{
-		Log:     logger.Logger{}.GetInstance().Logger,
+		Log:     log,
 		Usecase: usecase,
 	}
 }
@@ -102,7 +102,7 @@ func (h *SampleHandler) GetAll(c *echo.Context) error {
 		if ae, ok := err.(domain.AppError); ok {
 			return FailApp(c, ae)
 		}
-		return Fail(c, http.StatusInternalServerError, dto.ErrInternalServer, "")
+		return Fail(c, http.StatusInternalServerError, domain.ErrInternalServer, "")
 	}
 	return OK(c, samples)
 }
@@ -122,14 +122,14 @@ func (h *SampleHandler) GetAll(c *echo.Context) error {
 func (h *SampleHandler) GetByID(c *echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return Fail(c, http.StatusBadRequest, dto.ErrInvalidParameter, "id must be a number")
+		return Fail(c, http.StatusBadRequest, domain.ErrInvalidParameter, "id must be a number")
 	}
 	s, err := h.Usecase.GetByID(id)
 	if err != nil {
 		if ae, ok := err.(domain.AppError); ok {
 			return FailApp(c, ae)
 		}
-		return Fail(c, http.StatusInternalServerError, dto.ErrInternalServer, "")
+		return Fail(c, http.StatusInternalServerError, domain.ErrInternalServer, "")
 	}
 	return OK(c, s)
 }
@@ -140,22 +140,22 @@ func (h *SampleHandler) GetByID(c *echo.Context) error {
 // @Tags sample
 // @Accept json
 // @Produce json
-// @Param sample body domain.Sample true "생성할 샘플"
+// @Param sample body dto.SampleCreateRequest true "생성할 샘플"
 // @Success 200 {object} dto.HTTPResponse[domain.Sample] "생성된 샘플"
 // @Failure 400 {object} dto.HTTPResponse[any] "잘못된 요청"
 // @Failure 500 {object} dto.HTTPResponse[any] "서버 오류"
 // @Router /api/v1/sample [post]
 func (h *SampleHandler) Create(c *echo.Context) error {
-	input := new(domain.Sample)
+	input := new(dto.SampleCreateRequest)
 	if err := c.Bind(input); err != nil {
-		return Fail(c, http.StatusBadRequest, dto.ErrInvalidRequestBody, "")
+		return Fail(c, http.StatusBadRequest, domain.ErrInvalidRequestBody, "")
 	}
-	s, err := h.Usecase.Create(input)
+	s, err := h.Usecase.Create(input.ToDomain())
 	if err != nil {
 		if ae, ok := err.(domain.AppError); ok {
 			return FailApp(c, ae)
 		}
-		return Fail(c, http.StatusInternalServerError, dto.ErrInternalServer, "")
+		return Fail(c, http.StatusInternalServerError, domain.ErrInternalServer, "")
 	}
 	return OK(c, s)
 }
@@ -166,22 +166,22 @@ func (h *SampleHandler) Create(c *echo.Context) error {
 // @Tags sample
 // @Accept json
 // @Produce json
-// @Param sample body domain.Sample true "수정할 샘플 (ID 필수)"
+// @Param sample body dto.SampleUpdateRequest true "수정할 샘플 (ID 필수)"
 // @Success 200 {object} dto.HTTPResponse[domain.Sample] "수정된 샘플"
 // @Failure 400 {object} dto.HTTPResponse[any] "잘못된 요청"
 // @Failure 500 {object} dto.HTTPResponse[any] "서버 오류"
 // @Router /api/v1/sample/update [post]
 func (h *SampleHandler) Update(c *echo.Context) error {
-	input := new(domain.Sample)
+	input := new(dto.SampleUpdateRequest)
 	if err := c.Bind(input); err != nil {
-		return Fail(c, http.StatusBadRequest, dto.ErrInvalidRequestBody, "")
+		return Fail(c, http.StatusBadRequest, domain.ErrInvalidRequestBody, "")
 	}
-	s, err := h.Usecase.Update(input)
+	s, err := h.Usecase.Update(input.ToDomain())
 	if err != nil {
 		if ae, ok := err.(domain.AppError); ok {
 			return FailApp(c, ae)
 		}
-		return Fail(c, http.StatusInternalServerError, dto.ErrInternalServer, "")
+		return Fail(c, http.StatusInternalServerError, domain.ErrInternalServer, "")
 	}
 	return OK(c, s)
 }
@@ -201,14 +201,14 @@ func (h *SampleHandler) Update(c *echo.Context) error {
 func (h *SampleHandler) Delete(c *echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return Fail(c, http.StatusBadRequest, dto.ErrInvalidParameter, "id must be a number")
+		return Fail(c, http.StatusBadRequest, domain.ErrInvalidParameter, "id must be a number")
 	}
 	s, err := h.Usecase.Delete(id)
 	if err != nil {
 		if ae, ok := err.(domain.AppError); ok {
 			return FailApp(c, ae)
 		}
-		return Fail(c, http.StatusInternalServerError, dto.ErrInternalServer, "")
+		return Fail(c, http.StatusInternalServerError, domain.ErrInternalServer, "")
 	}
 	return OK(c, s)
 }

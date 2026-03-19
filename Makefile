@@ -142,6 +142,7 @@ image:  ## Build the docker image for linux/amd64 (맥에서 실행해도 결과
 .PHONY: clean
 clean:
 	go clean -i -cache -testcache
+	rm -rf build/bin build/coverage.out build/cov-out.html build/test-output.txt
 
 ## Run(Dev)
 

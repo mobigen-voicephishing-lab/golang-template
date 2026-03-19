@@ -10,7 +10,6 @@ import (
 	"github.com/labstack/echo/v5/middleware"
 	"github.com/sirupsen/logrus"
 
-	"github.com/mobigen/golang-web-template/internal/adapter/inbound/http/dto"
 	"github.com/mobigen/golang-web-template/internal/adapter/inbound/http/handler"
 	"github.com/mobigen/golang-web-template/internal/domain"
 
@@ -70,11 +69,11 @@ func Init(log *logrus.Logger, debug bool) (r *Router, err error) {
 			return
 		}
 		if he, ok := err.(*echo.HTTPError); ok {
-			_ = handler.Fail(c, he.Code, dto.ErrRouteNotFound, fmt.Sprintf("%v", he.Message))
+			_ = handler.Fail(c, he.Code, domain.ErrRouteNotFound, fmt.Sprintf("%v", he.Message))
 			return
 		}
 		log.Errorf("[HTTPErrorHandler] unexpected error: %v", err)
-		_ = handler.Fail(c, 500, dto.ErrInternalServer, "")
+		_ = handler.Fail(c, 500, domain.ErrInternalServer, "")
 	}
 
 	// Swagger

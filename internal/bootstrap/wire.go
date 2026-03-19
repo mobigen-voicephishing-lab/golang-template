@@ -13,11 +13,11 @@ import (
 type Injector struct {
 	Router    *apphttp.Router
 	Datastore *db.DataStore
-	Log       *logger.Logger
+	Log       *logger.LogrusLogger
 }
 
 // New create Injector
-func (Injector) New(r *apphttp.Router, d *db.DataStore, l *logger.Logger) *Injector {
+func (Injector) New(r *apphttp.Router, d *db.DataStore, l *logger.LogrusLogger) *Injector {
 	return &Injector{
 		Router:    r,
 		Datastore: d,
@@ -45,14 +45,14 @@ func (in *Injector) Init() error {
 	updateUC := sample.NewUpdateUseCase(repo)
 	deleteUC := sample.NewDeleteUseCase(repo)
 
-	sampleHandler := handler.NewSampleHandler(getAllUC, getByIDUC, createUC, updateUC, deleteUC)
+	sampleHandler := handler.NewSampleHandler(in.Log, getAllUC, getByIDUC, createUC, updateUC, deleteUC)
 
 	// ── 묶음 방식 (대안) ──
 	// 모든 메서드를 하나의 SampleUseCase 구조체에 담는 방식입니다.
 	// SampleUseCase는 Repository 인터페이스에 의존하며, 모든 CRUD 메서드를 포함합니다.
 	//
 	// uc := sample.NewSampleUseCase(repo)
-	// sampleHandler := handler.NewSampleHandlerFromUsecase(uc)
+	// sampleHandler := handler.NewSampleHandlerWithUsecase(uc)
 
 	apiv1.GET("/samples", sampleHandler.GetAll)
 	apiv1.GET("/sample/:id", sampleHandler.GetByID)

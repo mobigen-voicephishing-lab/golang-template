@@ -39,15 +39,15 @@ type LogConfiguration struct {
 // CheckLogLevel check loglevel and return logrus log level
 func CheckLogLevel(lv string) (int, error) {
 	switch lv {
-	case LvDebug:
+	case LogLevelDebug:
 		return int(logrus.DebugLevel), nil
-	case LvInfo:
+	case LogLevelInfo:
 		return int(logrus.InfoLevel), nil
-	case LvWarn:
+	case LogLevelWarn:
 		return int(logrus.WarnLevel), nil
-	case LvError:
+	case LogLevelError:
 		return int(logrus.ErrorLevel), nil
-	case LvSilent:
+	case LogLevelSilent:
 		return int(logrus.FatalLevel), nil
 	default:
 		return -1, fmt.Errorf("ERROR. Not Supported Log Level")
@@ -56,11 +56,11 @@ func CheckLogLevel(lv string) (int, error) {
 
 // List of supported log level
 const (
-	LvDebug  string = "debug"
-	LvInfo   string = "info"
-	LvWarn   string = "warn"
-	LvError  string = "error"
-	LvSilent string = "silent"
+	LogLevelDebug  string = "debug"
+	LogLevelInfo   string = "info"
+	LogLevelWarn   string = "warn"
+	LogLevelError  string = "error"
+	LogLevelSilent string = "silent"
 )
 
 // DatastoreConfiguration 데이터베이스 설정 정보

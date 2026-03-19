@@ -11,17 +11,24 @@ import (
 	gomock "go.uber.org/mock/gomock"
 
 	"github.com/labstack/echo/v5"
-	"github.com/mobigen/golang-web-template/internal/adapter/inbound/http/dto"
 	"github.com/mobigen/golang-web-template/internal/adapter/inbound/http/handler"
 	"github.com/mobigen/golang-web-template/internal/domain"
 	"github.com/stretchr/testify/assert"
 )
 
+// noopLogger logger.Logger 인터페이스의 테스트용 no-op 구현체
+type noopLogger struct{}
+
+func (noopLogger) Debugf(string, ...any) {}
+func (noopLogger) Infof(string, ...any)  {}
+func (noopLogger) Warnf(string, ...any)  {}
+func (noopLogger) Errorf(string, ...any) {}
+
 func newTestHandler(mockUsecase handler.SampleUsecase) *handler.SampleHandler {
-	return handler.NewSampleHandlerFromUsecase(mockUsecase)
+	return handler.NewSampleHandlerWithUsecase(noopLogger{}, mockUsecase)
 }
 
-func TestSampleHandler_GetAll(t *testing.T) {
+func TestSampleHandlerGetAll(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -50,12 +57,12 @@ func TestSampleHandler_GetAll(t *testing.T) {
 	}
 	json.Unmarshal(rec.Body.Bytes(), &resp)
 	assert.True(t, resp.IsSuccess)
-	assert.Equal(t, dto.Success, resp.Code)
+	assert.Equal(t, domain.Success, resp.Code)
 	assert.Equal(t, 1, len(resp.Data))
 	assert.Equal(t, "foo", resp.Data[0].Name)
 }
 
-func TestSampleHandler_GetAll_Error(t *testing.T) {
+func TestSampleHandlerGetAllError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -80,10 +87,10 @@ func TestSampleHandler_GetAll_Error(t *testing.T) {
 	}
 	json.Unmarshal(rec.Body.Bytes(), &resp)
 	assert.False(t, resp.IsSuccess)
-	assert.Equal(t, dto.ErrInternalServer, resp.Code)
+	assert.Equal(t, domain.ErrInternalServer, resp.Code)
 }
 
-func TestSampleHandler_GetByID(t *testing.T) {
+func TestSampleHandlerGetByID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -114,7 +121,7 @@ func TestSampleHandler_GetByID(t *testing.T) {
 	assert.Equal(t, "foo", resp.Data.Name)
 }
 
-func TestSampleHandler_GetByID_InvalidID(t *testing.T) {
+func TestSampleHandlerGetByIDInvalidID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -138,10 +145,10 @@ func TestSampleHandler_GetByID_InvalidID(t *testing.T) {
 	}
 	json.Unmarshal(rec.Body.Bytes(), &resp)
 	assert.False(t, resp.IsSuccess)
-	assert.Equal(t, dto.ErrInvalidParameter, resp.Code)
+	assert.Equal(t, domain.ErrInvalidParameter, resp.Code)
 }
 
-func TestSampleHandler_Create(t *testing.T) {
+func TestSampleHandlerCreate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -174,7 +181,7 @@ func TestSampleHandler_Create(t *testing.T) {
 	assert.Equal(t, 10, resp.Data.ID)
 }
 
-func TestSampleHandler_Delete(t *testing.T) {
+func TestSampleHandlerDelete(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

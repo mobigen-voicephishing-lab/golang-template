@@ -13,37 +13,45 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-// Logger struct have embedding logrus.Logger
-type Logger struct {
+// Logger 로거 인터페이스. 어댑터 레이어에서 구체 구현체 대신 이 타입에 의존한다.
+type Logger interface {
+	Debugf(format string, args ...any)
+	Infof(format string, args ...any)
+	Warnf(format string, args ...any)
+	Errorf(format string, args ...any)
+}
+
+// LogrusLogger logrus 기반 Logger 구현체
+type LogrusLogger struct {
 	*logrus.Logger
 }
 
-// Logger log variable
-var l *Logger
+// defaultLogger 패키지 수준 기본 로거 인스턴스
+var defaultLogger *LogrusLogger
 
 func init() {
-	l = &Logger{logrus.New()}
-	l.SetOutput(os.Stdout)
+	defaultLogger = &LogrusLogger{logrus.New()}
+	defaultLogger.SetOutput(os.Stdout)
 	f := &Formatter{
 		TimestampFormat: "2006-01-02 15:04:05.000",
 		ShowFields:      true,
 	}
-	l.SetFormatter(f)
-	l.SetReportCaller(true)
+	defaultLogger.SetFormatter(f)
+	defaultLogger.SetReportCaller(true)
 }
 
 // CheckLogLevel check loglevel and return logrus log level
 func CheckLogLevel(lv string) (int, error) {
 	switch lv {
-	case config.LvDebug:
+	case config.LogLevelDebug:
 		return int(logrus.DebugLevel), nil
-	case config.LvInfo:
+	case config.LogLevelInfo:
 		return int(logrus.InfoLevel), nil
-	case config.LvWarn:
+	case config.LogLevelWarn:
 		return int(logrus.WarnLevel), nil
-	case config.LvError:
+	case config.LogLevelError:
 		return int(logrus.ErrorLevel), nil
-	case config.LvSilent:
+	case config.LogLevelSilent:
 		return int(logrus.FatalLevel), nil
 	default:
 		return -1, fmt.Errorf("ERROR. Not Supported Log Level")
@@ -51,7 +59,7 @@ func CheckLogLevel(lv string) (int, error) {
 }
 
 // Setting :
-func (l *Logger) Setting(conf *config.LogConfiguration, appHome string) error {
+func (l *LogrusLogger) Setting(conf *config.LogConfiguration, appHome string) error {
 	var writers []io.Writer
 	for _, out := range conf.Output {
 		switch out {
@@ -93,12 +101,12 @@ func (l *Logger) Setting(conf *config.LogConfiguration, appHome string) error {
 }
 
 // GetInstance return logger instance
-func (Logger) GetInstance() *Logger {
-	return l
+func (LogrusLogger) GetInstance() *LogrusLogger {
+	return defaultLogger
 }
 
 // SetLogLevel set log level
-func (l *Logger) SetLogLevel(lv logrus.Level) {
+func (l *LogrusLogger) SetLogLevel(lv logrus.Level) {
 	switch lv {
 	case logrus.ErrorLevel:
 		l.SetLevel(lv)
@@ -114,13 +122,13 @@ func (l *Logger) SetLogLevel(lv logrus.Level) {
 }
 
 // GetLogLevel get log level
-func (l *Logger) GetLogLevel() string {
+func (l *LogrusLogger) GetLogLevel() string {
 	text, _ := l.GetLevel().MarshalText()
 	return string(text)
 }
 
 // Start Print Start Banner
-func (l *Logger) Start() {
+func (l *LogrusLogger) Start() {
 	l.Errorf("%s", LINE90)
 	l.Errorf(" ")
 	l.Errorf("                         START. %s:%s-%s",
@@ -132,7 +140,7 @@ func (l *Logger) Start() {
 }
 
 // Shutdown Print Shutdown
-func (l *Logger) Shutdown() {
+func (l *LogrusLogger) Shutdown() {
 	l.Errorf("%s", LINE90)
 	l.Errorf(" ")
 	l.Errorf("                        %s Bye Bye.", strings.ToUpper(config.Name))
@@ -154,14 +162,14 @@ func (tw *testingWriter) Write(b []byte) (int, error) {
 }
 
 // MakeTestLogger creates a custom format logrus.Logger
-func MakeTestLogger(tb testing.TB) *Logger {
-	l = &Logger{logrus.New()}
-	l.SetOutput(os.Stdout)
+func MakeTestLogger(tb testing.TB) *LogrusLogger {
+	defaultLogger = &LogrusLogger{logrus.New()}
+	defaultLogger.SetOutput(os.Stdout)
 	f := &Formatter{
 		TimestampFormat: "2006-01-02 15:04:05.000",
 		ShowFields:      true,
 	}
-	l.SetFormatter(f)
-	l.SetReportCaller(false)
-	return l
+	defaultLogger.SetFormatter(f)
+	defaultLogger.SetReportCaller(false)
+	return defaultLogger
 }

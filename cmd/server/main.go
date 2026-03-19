@@ -22,15 +22,15 @@ import (
 type Context struct {
 	Env       *config.Environment
 	Conf      *config.Configuration
-	Log       *logger.Logger
-	CM        *config.ConfigManager
+	Log       *logger.LogrusLogger
+	configMgr *config.ConfigManager
 	Datastore *db.DataStore
 	Router    *apphttp.Router
 }
 
 // InitLog Initialize logger
 func (c *Context) InitLog() {
-	log := logger.Logger{}.GetInstance()
+	log := logger.LogrusLogger{}.GetInstance()
 	log.SetLogLevel(logrus.DebugLevel)
 	c.Log = log
 }
@@ -77,7 +77,7 @@ func (c *Context) ReadEnv() error {
 
 // ReadConfig Read Configuration File By Viper
 func (c *Context) ReadConfig() error {
-	c.CM = config.ConfigManager{}.New(c.Log.Logger)
+	c.configMgr = config.ConfigManager{}.New(c.Log.Logger)
 	// Write Config File Info
 	configPath := c.Env.Home + "/configs"
 	configName := c.Env.Profile
@@ -85,7 +85,7 @@ func (c *Context) ReadConfig() error {
 	// Config file struct
 	conf := new(config.Configuration)
 	// Read
-	if err := c.CM.ReadConfig(configPath, configName, configType, conf); err != nil {
+	if err := c.configMgr.ReadConfig(configPath, configName, configType, conf); err != nil {
 		return err
 	}
 	// Save
