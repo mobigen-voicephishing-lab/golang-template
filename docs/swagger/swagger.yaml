@@ -1,19 +1,68 @@
+basePath: /
 definitions:
-  appdata.VersionInfo:
+  HTTPResponse-Sample:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/Sample'
+      isSuccess:
+        type: boolean
+      message:
+        type: string
+    type: object
+  HTTPResponse-VersionInfo:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/VersionInfo'
+      isSuccess:
+        type: boolean
+      message:
+        type: string
+    type: object
+  HTTPResponse-any:
+    properties:
+      code:
+        type: integer
+      data: {}
+      isSuccess:
+        type: boolean
+      message:
+        type: string
+    type: object
+  HTTPResponse-array_Sample:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/Sample'
+        type: array
+      isSuccess:
+        type: boolean
+      message:
+        type: string
+    type: object
+  Sample:
+    properties:
+      createAt:
+        type: integer
+      desc:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  VersionInfo:
     properties:
       buildHash:
         type: string
       name:
         type: string
       version:
-        type: string
-    type: object
-  controllers.HTTPResponse:
-    properties:
-      code:
-        type: integer
-      data: {}
-      message:
         type: string
     type: object
 host: localhost:8080
@@ -26,6 +75,150 @@ info:
   title: Golang Web Template API
   version: 1.0.0
 paths:
+  /api/v1/sample:
+    post:
+      consumes:
+      - application/json
+      description: 새 샘플을 생성한다
+      parameters:
+      - description: 생성할 샘플
+        in: body
+        name: sample
+        required: true
+        schema:
+          $ref: '#/definitions/Sample'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 생성된 샘플
+          schema:
+            $ref: '#/definitions/HTTPResponse-Sample'
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+      summary: Create sample
+      tags:
+      - sample
+  /api/v1/sample/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: ID로 샘플을 삭제한다
+      parameters:
+      - description: Sample ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 삭제된 샘플
+          schema:
+            $ref: '#/definitions/HTTPResponse-Sample'
+        "400":
+          description: 잘못된 파라미터
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+        "404":
+          description: 샘플 없음
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+      summary: Delete sample
+      tags:
+      - sample
+    get:
+      consumes:
+      - application/json
+      description: ID로 샘플을 조회한다
+      parameters:
+      - description: Sample ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 샘플
+          schema:
+            $ref: '#/definitions/HTTPResponse-Sample'
+        "400":
+          description: 잘못된 파라미터
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+        "404":
+          description: 샘플 없음
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+      summary: Get sample by ID
+      tags:
+      - sample
+  /api/v1/sample/update:
+    post:
+      consumes:
+      - application/json
+      description: 샘플을 수정한다
+      parameters:
+      - description: 수정할 샘플 (ID 필수)
+        in: body
+        name: sample
+        required: true
+        schema:
+          $ref: '#/definitions/Sample'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 수정된 샘플
+          schema:
+            $ref: '#/definitions/HTTPResponse-Sample'
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+      summary: Update sample
+      tags:
+      - sample
+  /api/v1/samples:
+    get:
+      consumes:
+      - application/json
+      description: 전체 샘플 목록을 반환한다
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 샘플 목록
+          schema:
+            $ref: '#/definitions/HTTPResponse-array_Sample'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/HTTPResponse-any'
+      summary: Get all samples
+      tags:
+      - sample
   /version:
     get:
       consumes:
@@ -37,12 +230,7 @@ paths:
         "200":
           description: app info(name, version, hash)
           schema:
-            allOf:
-            - $ref: '#/definitions/controllers.HTTPResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/appdata.VersionInfo'
-              type: object
+            $ref: '#/definitions/HTTPResponse-VersionInfo'
       summary: Get Server Version
       tags:
       - version

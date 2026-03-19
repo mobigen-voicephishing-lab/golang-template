@@ -11,459 +11,297 @@ Go 언어를 이용한 웹서버 샘플
 
 2. 주요 의존성 패키지
 
-    | 패키지                           | 버전                  | 사용처                                        |
-    | -------------------------------- | --------------------- | --------------------------------------------- |
-    | `github.com/labstack/echo/v5`    | v5.0.4                | HTTP 웹 프레임워크 (라우팅, 미들웨어)         |
-    | `gorm.io/gorm`                   | v1.31.1               | ORM 프레임워크                                |
-    | `gorm.io/driver/mysql`           | v1.6.0                | MySQL 데이터베이스 드라이버                   |
-    | `gorm.io/driver/postgres`        | v1.6.0                | PostgreSQL 데이터베이스 드라이버              |
-    | `gorm.io/driver/sqlite`          | v1.6.0                | SQLite 데이터베이스 드라이버                  |
-    | `github.com/spf13/viper`         | v1.21.0               | 환경변수 및 설정 파일(YAML) 관리              |
-    | `github.com/fsnotify/fsnotify`   | v1.9.0                | 설정 파일 변경 감지 (hot-reload)              |
-    | `github.com/mobigen/gologger`    | v1.1.1                | 커스텀 로거                                   |
-    | `github.com/sirupsen/logrus`     | v1.9.4                | 구조화된 로깅                                 |
-    | `github.com/swaggo/swag`         | v1.16.6               | Swagger 문서 자동 생성 (코드 어노테이션 파싱) |
-    | `github.com/swaggo/echo-swagger` | v1.5.0                | Echo에서 Swagger UI 제공                      |
-    | `github.com/alecthomas/template` | v0.0.0-20190718012654 | Swagger HTML 템플릿 렌더링                    |
-    | `github.com/stretchr/testify`    | v1.11.1               | 테스트 assertion 유틸리티                     |
+    | 패키지                              | 버전       | 사용처                                        |
+    | ----------------------------------- | ---------- | --------------------------------------------- |
+    | `github.com/labstack/echo/v5`       | v5.0.4     | HTTP 웹 프레임워크 (라우팅, 미들웨어)         |
+    | `gorm.io/gorm`                      | v1.31.1    | ORM 프레임워크                                |
+    | `gorm.io/driver/mysql`              | v1.6.0     | MySQL 데이터베이스 드라이버                   |
+    | `gorm.io/driver/postgres`           | v1.6.0     | PostgreSQL 데이터베이스 드라이버              |
+    | `gorm.io/driver/sqlite`             | v1.6.0     | SQLite 데이터베이스 드라이버                  |
+    | `github.com/spf13/viper`            | v1.21.0    | 환경변수 및 설정 파일(YAML) 관리              |
+    | `github.com/fsnotify/fsnotify`      | v1.9.0     | 설정 파일 변경 감지 (hot-reload)              |
+    | `github.com/sirupsen/logrus`        | v1.9.4     | 구조화된 로깅                                 |
+    | `gopkg.in/natefinch/lumberjack.v2`  | v2.2.1     | 로그 파일 로테이션                            |
+    | `github.com/swaggo/swag/v2`         | v2.0.0-rc5 | Swagger 문서 자동 생성 (코드 어노테이션 파싱) |
+    | `github.com/swaggo/echo-swagger/v2` | v2.0.1     | Echo v5에서 Swagger UI 제공 (OAS 2.0)         |
+    | `github.com/stretchr/testify`       | v1.11.1    | 테스트 assertion 유틸리티                     |
+    | `go.uber.org/mock`                  | v0.6.0     | Mock 코드 생성 (mockgen)                      |
 
 ## 2. 프로젝트 구조
 
-설계 바탕이 된 레이어 구조
+### 2.1. 아키텍처: Hexagonal Architecture (Ports & Adapters)
 
-- Layered Architecture
+이 프로젝트는 헥사고날 아키텍처(Ports & Adapters)를 기반으로 설계되었습니다.
+도메인(비즈니스 로직)이 중심에 위치하고, 외부 시스템(HTTP, DB)은 어댑터를 통해 연결됩니다.
 
-레이어라는 말에서 알 수 있듯 각 레이어(계층)는 동일한 관심사(역할)의 집합으로 이루어져 있고,
-겹겹이 쌓아 올린 구조라는 것을 알 수 있을 것 입니다. 그리고 이 계층 구조가 의미하는
-다른 부분을 생각해 본다면 계층 간 접근/제어에 대한 부분으로 하위(종속) 계층으로만
-컨트롤될 수 있도록 하는 설계 단계에서부터의 제한이라고 볼 수 있습니다.
-예를 들어 상위 계층에서 하위 계층으로 접근은 가능하지만 하위 계층에서 상위 계층으로의
-조작 코드는 작성하면 안 됩니다.
+```text
+                     ┌─────────────────────────────────────┐
+                     │          internal/                  │
+  HTTP Request  ───► │  adapter/inbound  ──► usecase  ──► │ ──► DB
+                     │  (handler, router)     (use case)   │     (adapter/outbound)
+                     │                    domain (entity)  │
+                     └─────────────────────────────────────┘
+```
 
-각 레이어를 분리하고 각 레이어의 역할을 구체화해 규칙을 준수한다면,
-기능/사람의 변경에도 유연하게 대처할 수 있어 어려움(비용)이 줄어들 수 있을 것 입니다.
+- **Domain** (중심): 순수 비즈니스 엔티티와 도메인 에러. 프레임워크 의존성 없음.
+- **UseCase** (애플리케이션 레이어): 비즈니스 로직 구현. Repository 인터페이스(포트)에만 의존.
+- **Adapter Inbound** (HTTP 어댑터): Echo 핸들러. HTTP 요청을 UseCase로 전달.
+- **Adapter Outbound** (Persistence 어댑터): GORM 기반 DB 구현체. Repository 인터페이스 구현.
+- **Infrastructure** (기반 서비스): Config, Logger, DB 연결 등 기술적 관심사.
+- **Bootstrap** (의존성 주입): 모든 레이어를 조립하고 라우트를 등록.
 
-- Software Architecture is The Art Of Drawing Lines That I Call Boundaries. - 로버트C. 마틴
+### 2.2. 디렉토리 구조
 
-소프트웨어 아키텍처는 경계라는 선을 그리는 예술이다. 이러한 경계들은 소프트웨어 요소들을 서로
-분리하고 디펜던시 의존성을 제한한다. 아키텍트의 목표는 필요한 시스템을 구축하고 유지하는 데
-필요한 인적 리소스를 최소화하는 것이다. 예를 들어서, 비즈니스 유스케이스와 데이터베이스 사이의
-경계선을 그릴 수 있다. 그 선은 비즈니스 규칙이 데이터베이스에 대해 전혀 알지 못하도록 막았다.
-그 결정은 데이터베이스의 선택과 실행을 뒤로 늦출 수 있었고, 데이터베이스에 의존한 문제가
-발생하지 않았다. 중요한 것과 중요하지 않은 것 사이에 선을 긋는다. UI는 비즈니스 규칙에 영향을
-미치지 않아야 하고, 데이터베이스는 UI에 영향을 미치지 않아야 한다. 물론, 대부분의 우리들은
-데이터베이스는 비즈니스 규칙과 불가피하게 연결되어 있다고 믿고 있다. 하지만, 데이터베이스는
-비즈니스 규칙이 간접적으로 사용할 수 있는 도구일 뿐이다. 그래서, 우리는 인터페이스 뒤에
-데이터베이스를 놓을 수 있도록 설계를 해야 한다. 실제로 소프트웨어 개발, 기술의 역사는 확장
-가능하고 유지 관리 가능한 시스템 아키텍처를 구축하기 위해 플러그인을 만드는 방법에 관한
-이야기이다. 핵심 비즈니스 규칙은 다른 컴포넌트들과 독립적으로 유지된다.  - 로버트 C. 마틴
-
-### layered Architecture의 적용
-
-- 3tier Architecture : Clean architecture
-  전자정부 프레임워크로 국내에서 가장 많이 사용하는 구조
-    - presentation layer : controllers 폴더
-    - business layer : services 폴더
-    - data access layer : repositories 폴더
-- Presentation layer
-  HTTP Framework(Echo, Gin?)로부터 최초로 호출되는 API엔드 포인트
-    - 클라이언트에서 보내온 데이터의 변환(Param Data)
-    - 기본적인 인증과 요청 내용 검증
-    - 수행 결과를 클라이언트에 반환
-- Business layer
-    - 비즈니스 로직을 작성한다.
-- Data access layer
-    - 데이터(데이터 정책(Unique, Max, Min))과 관련된 비즈니스 로직(메서드)
-- Entities => model 폴더
-    - 레이어 전체에서 사용되는 데이터의 구조
-    - 메서드를 포함하는 객체일 수도 있고, 단순 데이터 구조일 수도 있다.
-- Infrastructure ( Framework Drivers )
-    - 이 영역은 일반적으로 데이터베이스 및 웹 프레임워크와 같은 도구로 구성된다.
-    - HTTP Framework : Server
-    - Database(ORM) : datastore
-    - ETC...
-
-참고용 그림( 이 프로젝트 코드와 관계는 없다. )
-![Arch Img](./docs/img/layer_arch.png)
-
-### 클린 아키텍처, 디펜던시 의존성
-
-클린 아키텍처에서 가장 중요한 개념은 디펜던시(의존성) 규칙이다.
-우리는 이 문서에서 설명한 계층 외 추가 계층을 필요로 할 수 있다. 그러나, 디펜던시 규칙은 항상
-적용이 된다. 규칙을 준수하는 것은 어렵지 않으며, 앞으로 많은 고민들을 해결해 줄 것이다.
-소프트웨어를 계층으로 분리하고, 디펜던시 규칙을 준수함으로써, 데이터베이스나 웹 프레임워크와 같은
-시스템이 외부 부분들이 쓸모없게 될 때, 그러한 쓸모없는 요소들을 최소한의 작업으로 대체할 수 있을 것이다.
+```text
+.
+├── cmd/
+│   └── server/
+│       └── main.go                  # 애플리케이션 진입점
+├── internal/
+│   ├── adapter/
+│   │   ├── inbound/
+│   │   │   └── http/
+│   │   │       ├── dto/             # 응답 구조체, 에러 코드 정의
+│   │   │       ├── handler/         # HTTP 핸들러 (Echo)
+│   │   │       └── router.go        # Echo 초기화, 미들웨어, 전역 에러 핸들러
+│   │   └── outbound/
+│   │       └── persistence/
+│   │           └── gorm/            # GORM 기반 Repository 구현체
+│   ├── domain/
+│   │   ├── sample.go                # 도메인 엔티티
+│   │   └── errors.go                # AppError (비즈니스 에러)
+│   ├── usecase/
+│   │   └── sample/
+│   │       ├── interface.go         # Repository 포트 (인터페이스)
+│   │       ├── get.go               # GetByID 유스케이스
+│   │       ├── get_all.go           # GetAll 유스케이스
+│   │       ├── create.go            # Create 유스케이스
+│   │       ├── update.go            # Update 유스케이스
+│   │       ├── delete.go            # Delete 유스케이스
+│   │       └── usecase.go           # 묶음 SampleUseCase (대안)
+│   ├── infrastructure/
+│   │   ├── config/                  # 환경변수, 설정 파일, 빌드 정보
+│   │   ├── logger/                  # Logrus + Lumberjack 로거
+│   │   └── db/                      # GORM 연결, 마이그레이션
+│   ├── bootstrap/
+│   │   └── wire.go                  # 의존성 주입 (DI wiring)
+│   └── testutil/                    # 테스트 유틸리티
+├── util/
+│   └── util.go                      # 시간 유틸리티
+├── test/
+│   └── integration/                 # 통합 테스트
+├── configs/
+│   └── prod.yaml                    # 설정 파일
+├── docs/
+│   └── swagger/                     # swag init 으로 생성된 Swagger 문서
+├── build/
+│   ├── Dockerfile
+│   └── bin/                         # 빌드 결과물
+├── Makefile
+└── go.mod
+```
 
 ## 3. 개발
-
-개발 시 다음 내용을 참고하여 작성한다.
-문서상에서는 사용자 입력(요청)을 받아 데이터 베이스 제어하는 부분까지의 내용을 다룬다.
 
 ### 3.1. Change Module Name
 
 코드 작성에 앞서 프로젝트(모듈)의 이름을 변경한다.
-다음 명령은 소스 코드에서 `{search}`를 찾아 `{replace}`로 변경한다.
 
 ```sh
-# foo를 찾아 bar로 변경한다.
-$ find . -type f -name "*.go" -print0 | xargs -0 sed -i 's/foo/bar/g'
-
-# The easier and much more readable option is to use another delimiter
-# character. Most people use the vertical bar (|) or colon (:) but you
-# can use any other character:
-
-# github.com/mobigen/test => github.com/mobigen/blahblah 로 변경
-$ find . -type f -name "*.go" -print0 | xargs -0 sed -i 's|github.com/mobigen/test|github.com/mobigen/blahblah|g'
+# github.com/mobigen/golang-web-template => github.com/myorg/myapp 로 변경
+$ find . -type f -name "*.go" -print0 | xargs -0 sed -i 's|github.com/mobigen/golang-web-template|github.com/myorg/myapp|g'
+# go.mod 도 함께 수정
+$ sed -i 's|github.com/mobigen/golang-web-template|github.com/myorg/myapp|g' go.mod
 ```
 
-### 3.2. Create Data(DTO, Entity) Structure
+### 3.2. Domain Entity 작성
 
-데이터베이스, Client와 주고 받을 데이터 정의
+데이터베이스, 클라이언트와 주고 받을 도메인 엔티티 정의
 
-- models/sample.go
+- `internal/domain/sample.go`
 
 ```go
-package models
+package domain
 
-// Sample ....
 type Sample struct {
-    ID        int       `json:"id", gorm:"column:id;primaryKey;autoIncrement"`
-    Name      string    `json:"name" gorm:"column:name;not null"`
-    Desc      string    `json:"desc" gorm:"column:desc;size:256"`
-    CreateAt  int64     `json:"createAt gorm:"column:createAt;autoCreateTime:milli"`
+    ID       int    `json:"id"`
+    Name     string `json:"name"`
+    Desc     string `json:"desc"`
+    CreateAt int64  `json:"createAt"`
 }
 ```
 
-### 3.3. 테이블 생성(Migration)
+> GORM 태그는 도메인 엔티티에 포함하지 않습니다. GORM 전용 모델은 `internal/adapter/outbound/persistence/gorm/` 에 별도로 정의합니다.
 
-- infrastructures/datastore/gorm.go - Migrate 함수
+### 3.3. Repository 인터페이스 작성 (포트 정의)
+
+UseCase가 의존하는 Repository 인터페이스를 `internal/usecase/sample/interface.go` 에 정의합니다.
 
 ```go
-func (ds *DataStore) Migrate() error {
-    ...
-    ds.Orm.AutoMigrate(&models.Sample{})
-    ...
+package sample
+
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_repository_test.go -package=sample_test github.com/mobigen/golang-web-template/internal/usecase/sample Repository
+
+type Repository interface {
+    GetAll() (*[]domain.Sample, error)
+    GetByID(int) (*domain.Sample, error)
+    Create(*domain.Sample) (*domain.Sample, error)
+    Update(*domain.Sample) (*domain.Sample, error)
+    Delete(int) (*domain.Sample, error)
 }
 ```
 
-### 3.4. Usecase 작성
+### 3.4. UseCase 작성
 
-- controllers/sample.go
+각 CRUD 동작을 개별 UseCase 파일로 작성합니다.
 
-    ```go
-    type SampleUsecase interface {
-        GetAll()(*[]models.Sample, error)
-        GetByID(int)(*models.Sample, error)
-        Create(*models.Sample)(*models.Sample, error)
-        Update(*models.Sample)(*models.Sample, error)
-        Delete(int)(*models.Sample, error)
+- `internal/usecase/sample/get.go` — GetByID 유스케이스 예시:
+
+```go
+package sample
+
+type GetByIDUseCase struct {
+    repo Repository
+}
+
+func NewGetByIDUseCase(repo Repository) *GetByIDUseCase {
+    return &GetByIDUseCase{repo: repo}
+}
+
+func (uc *GetByIDUseCase) Execute(id int) (*domain.Sample, error) {
+    return uc.repo.GetByID(id)
+}
+```
+
+### 3.5. Outbound Adapter 작성 (Repository 구현체)
+
+GORM 전용 모델과 도메인 엔티티를 분리하여 구현합니다.
+
+- `internal/adapter/outbound/persistence/gorm/sample_repository.go`
+
+```go
+package gorm
+
+// GORM 전용 모델 (domain.Sample과 분리)
+type sampleModel struct {
+    ID       int    `gorm:"column:id;primaryKey;autoIncrement"`
+    Name     string `gorm:"column:name;not null"`
+    Desc     string `gorm:"column:desc;size:256"`
+    CreateAt int64  `gorm:"column:createAt;autoCreateTime:milli"`
+}
+
+func (sampleModel) TableName() string { return "samples" }
+
+// SampleRepository GORM 기반 구현체
+type SampleRepository struct {
+    ds *db.DataStore
+}
+
+func NewSampleRepository(ds *db.DataStore) *SampleRepository {
+    return &SampleRepository{ds: ds}
+}
+```
+
+### 3.6. 테이블 생성 (Migration)
+
+`cmd/server/main.go` 의 `InitDatastore()` 에서 GORM 모델을 파라미터로 전달합니다.
+
+```go
+if err := ds.Migrate(persistence.SampleModel()); err != nil {
+    return err
+}
+```
+
+### 3.7. Inbound Handler 작성
+
+HTTP 핸들러는 `SampleUsecase` 인터페이스에 의존합니다.
+
+- `internal/adapter/inbound/http/handler/sample_handler.go`
+
+```go
+package handler
+
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_usecase_test.go -package=handler_test github.com/mobigen/golang-web-template/internal/adapter/inbound/http/handler SampleUsecase
+
+type SampleUsecase interface {
+    GetAll() (*[]domain.Sample, error)
+    GetByID(int) (*domain.Sample, error)
+    Create(*domain.Sample) (*domain.Sample, error)
+    Update(*domain.Sample) (*domain.Sample, error)
+    Delete(int) (*domain.Sample, error)
+}
+
+type SampleHandler struct {
+    Usecase SampleUsecase
+}
+
+func (h *SampleHandler) GetByID(c *echo.Context) error {
+    id, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+        return Fail(c, http.StatusBadRequest, dto.ErrInvalidParameter, "id must be a number")
     }
-    ```
-
-- services/sample.go
-
-    ```go
-    type SampleRepository interface {
-        GetAll()(*[]models.Sample, error)
-        GetByID(int)(*models.Sample, error)
-        Create(*models.Sample)(*models.Sample, error)
-        Update(*models.Sample)(*models.Sample, error)
-        Delete(int)(*models.Sample, error)
-    }
-    ```
-
-### 3.5. 작성 순서
-
-기능 정의, 모델 작성, Usecase까지 정의 되어야 하는 부분이 완료되었다면,
-Controller, Service, Repositories 중 어떤 것을 먼저 작성하더라도 상관 없다.
-각 레이어간 필요로 하는 인터페이스(모델)이 모두 정의되어 있으므로, 필요로 하는
-부분을 처리하도록 구현을 진행하면 되기 때문이다.
-
-### 3.6. Repositories 작성
-
-- repositories/sample.go
-
-    ```go
-    package repositories
-
-    import (
-        "fmt"
-
-        "github.com/mobigen/golang-web-template/infrastructures/datastore"
-        "github.com/mobigen/golang-web-template/infrastructures/tools/util"
-        "github.com/mobigen/golang-web-template/models"
-    )
-
-    // Sample is struct of todo.
-    type Sample struct {
-        *datastore.DataStore
-    }
-
-    // New is constructor that creates SampleRepository
-    func (Sample) New(handler *datastore.DataStore) *Sample {
-        return &Sample{handler}
-    }
-
-    // GetAll get all sample from database(store)
-    func (repo *Sample) GetAll() (*[]models.Sample, error) {
-        dst := new([]models.Sample)
-        result := repo.Orm.Find(dst)
-        if result.Error != nil {
-            return nil, result.Error
+    s, err := h.Usecase.GetByID(id)
+    if err != nil {
+        if ae, ok := err.(domain.AppError); ok {
+            return FailApp(c, ae)
         }
-        if result.RowsAffected <= 0 {
-            return nil, fmt.Errorf("no have result")
-        }
-        return dst, nil
+        return Fail(c, http.StatusInternalServerError, dto.ErrInternalServer, "")
     }
+    return OK(c, s)
+}
+```
 
-    // GetByID get sample whoes id match
-    func (repo *Sample) GetByID(id int) (*models.Sample, error) {
-        var dst *models.Sample
-        result := repo.Orm.Find(dst).Where(&models.Sample{ID: id})
-        if result.Error != nil {
-            return nil, result.Error
-        }
-        if result.RowsAffected <= 0 {
-            return nil, fmt.Errorf("no have result")
-        }
-        return dst, nil
-    }
+### 3.8. Bootstrap (DI Wiring) 등록
 
-    // Create create sample
-    func (repo *Sample) Create(input *models.Sample) (*models.Sample, error) {
-        input.CreateAt = util.GetMillis()
-        result := repo.Orm.Create(input)
-        if result.Error != nil {
-            return nil, result.Error
-        }
-        return input, nil
-    }
+- `internal/bootstrap/wire.go` — 레이어를 조립하고 라우트를 등록합니다.
 
-    // Update update sample
-    func (repo *Sample) Update(input *models.Sample) (*models.Sample, error) {
-        // Save/Update All Fields
-        // repo.Orm.Save(input)
+```go
+func (in *Injector) Init() error {
+    // Version
+    ver := handler.NewVersionHandler()
+    in.Router.GET("/version", ver.GetVersion)
 
-        // ID       int    `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-        // Name     string `json:"name" gorm:"column:name;not null"`
-        // Desc     string `json:"desc" gorm:"column:desc;size:256"`
-        // CreateAt int64  `json:"createAt" gorm:"column:createAt;autoCreateTime:milli"`
-        result := repo.Orm.Model(input).
-            Where(&models.Sample{ID: input.ID}).
-            Updates(
-                map[string]interface{}{
-                    "name": input.Name,
-                    "desc": input.Desc,
-                })
-        if result.Error != nil {
-            return nil, result.Error
-        }
-        return input, nil
+    apiv1 := in.Router.Group("/api/v1")
 
-    }
+    // Repository → 개별 UseCase → Handler 순으로 wiring
+    repo := persistence.NewSampleRepository(in.Datastore)
 
-    // Delete delete sample from id(primaryKey)
-    func (repo *Sample) Delete(id int) (*models.Sample, error) {
-        dst := new(models.Sample)
-        result := repo.Orm.Find(dst).Where(&models.Sample{ID: id})
-        if result.Error != nil {
-            return nil, result.Error
-        }
-        if result.RowsAffected <= 0 {
-            return nil, fmt.Errorf("no have result")
-        }
-        // Delete with additional conditions
-        result = repo.Orm.Delete(&models.Sample{}, id)
-        if result.Error != nil {
-            return nil, result.Error
-        }
-        return dst, nil
-    }
-    ```
+    getAllUC  := sample.NewGetAllUseCase(repo)
+    getByIDUC := sample.NewGetByIDUseCase(repo)
+    createUC  := sample.NewCreateUseCase(repo)
+    updateUC  := sample.NewUpdateUseCase(repo)
+    deleteUC  := sample.NewDeleteUseCase(repo)
 
-### 3.7. Services 작성
+    sampleHandler := handler.NewSampleHandler(getAllUC, getByIDUC, createUC, updateUC, deleteUC)
 
-- services/sample.go
+    apiv1.GET("/samples",          sampleHandler.GetAll)
+    apiv1.GET("/sample/:id",       sampleHandler.GetByID)
+    apiv1.POST("/sample",          sampleHandler.Create)
+    apiv1.POST("/sample/update",   sampleHandler.Update)
+    apiv1.DELETE("/sample/:id",    sampleHandler.Delete)
+    return nil
+}
+```
 
-    ```go
-    package services
+> **묶음 방식 (대안)**: 모든 CRUD를 하나의 `SampleUseCase` 구조체에 담는 방식도 지원합니다.
+> `wire.go` 내 주석 처리된 코드를 참고하세요.
 
-    import (
-        "github.com/mobigen/golang-web-template/models"
-    )
+### 3.9. 에러 처리
 
-    // Sample service - repository - interactor for Sample entity.
-    type Sample struct {
-        Repo SampleRepository
-    }
+도메인 레이어에서 `AppError`를 생성하고 핸들러까지 전파합니다.
+라우터의 전역 에러 핸들러가 `AppError`를 자동으로 처리합니다.
 
-    // New is constructor that creates Sample service
-    func (Sample) New(repo SampleRepository) *Sample {
-        return &Sample{repo}
-    }
+```go
+// domain/errors.go
+func NewNotFoundError(msg string) AppError {
+    return AppError{HttpStatus: 404, Code: 1001, Message: msg}
+}
 
-    // GetAll returns All of samples.
-    func (service *Sample) GetAll() ([]*models.Sample, error) {
-        return service.Repo.GetAll()
-    }
-
-    // GetByID returns sample whoes that ID mathces.
-    func (service *Sample) GetByID(id int) (*models.Sample, error) {
-        return service.Repo.GetByID(id)
-    }
-
-    // Create create a new sample.
-    func (service *Sample) Create(sample *models.Sample) (*models.Sample, error) {
-        return service.Repo.Create(sample)
-    }
-
-    // Update update a sample.
-    func (service *Sample) Update(sample *models.Sample) (*models.Sample, error) {
-        return service.Repo.Update(sample)
-    }
-
-    // Delete delete sample from id.
-    func (service *Sample) Delete(id int) (*models.Sample, error) {
-        return service.Repo.Delete(id)
-    }
-    ```
-
-### 3.8. Controller 작성
-
-- controllers/sample.go
-
-    ```go
-    package controllers
-
-    import (
-        "net/http"
-        "strconv"
-
-        "github.com/mobigen/golang-web-template/models"
-        "github.com/labstack/echo/v4"
-    )
-
-    // Sample Controller
-    type Sample struct {
-        Usecase SampleUsecase
-    }
-
-    // SampleUsecase usecase define
-    type SampleUsecase interface {
-        GetAll()(*[]models.Sample, error)
-        GetByID(int)(*models.Sample, error)
-        Create(*models.Sample)(*models.Sample, error)
-        Update(*models.Sample)(*models.Sample, error)
-        Delete(int)(*models.Sample, error)
-    }
-
-    // New create Sample instance.
-    func (Sample) New(usecase SampleUsecase) *Sample {
-        return &Sample{usecase}
-    }
-
-    // GetAll returns all of sample as JSON object.
-    func (controller *Sample) GetAll(c echo.Context) error {
-        samples, err := controller.Usecase.GetAll()
-        if err != nil {
-            return c.JSON(http.StatusBadRequest, samples)
-        }
-        return c.JSON(http.StatusOK, samples)
-    }
-
-    // GetByID return sample whoes ID mathces
-    func (controller *Sample) GetByID(c echo.Context) error {
-        id, err := strconv.Atoi(c.Param("id"))
-        if err != nil {
-            return c.JSON(http.StatusBadRequest, err)
-        }
-        sample, err := controller.Usecase.GetByID(id)
-        if err != nil {
-            return c.JSON(http.StatusInternalServerError, err)
-        }
-        return c.JSON(http.StatusOK, sample)
-    }
-
-    // Create create a new ...
-    func (controller *Sample) Create(c echo.Context) error {
-        input := new(models.Sample)
-        c.Bind(input)
-        sample, err := controller.Usecase.Create(input)
-        if err != nil {
-            return c.JSON(http.StatusInternalServerError, err)
-        }
-        return c.JSON(http.StatusCreated, sample)
-    }
-
-    // Update update from input
-    func (controller *Sample) Update(c echo.Context) error {
-        input := new(models.Sample)
-        c.Bind(input)
-        sample, err := controller.Usecase.Update(input)
-        if err != nil {
-            return c.JSON(http.StatusInternalServerError, err)
-        }
-        return c.JSON(http.StatusOK, sample)
-    }
-
-    // Delete delete sample from id
-    func (controller *Sample) Delete(c echo.Context) error {
-        id, err := strconv.Atoi(c.Param("id"))
-        if err != nil {
-            return c.JSON(http.StatusBadRequest, err)
-        }
-        sample, err := controller.Usecase.Delete(id)
-        if err != nil {
-            return c.JSON(http.StatusInternalServerError, err)
-        }
-        return c.JSON(http.StatusOK, sample)
-    }
-    ```
-
-### 3.9. Injector 작성
-
-- injectors/sample.go : 신규 추가 코드들에 대한 초기화
-
-    ```go
-    package injectors
-
-    import (
-        "github.com/mobigen/golang-web-template/controllers"
-        "github.com/mobigen/golang-web-template/repositories"
-        "github.com/mobigen/golang-web-template/services"
-    )
-
-    // Sample sample injector
-    type Sample struct{}
-
-    // Init for interconnection [ controller(App) - Service(Repository) - repository - datastore ] : Dependency Injection
-    func (Sample) Init(in *Injector) *controllers.Sample {
-        repo := repositories.Sample{}.New(in.Datastore)
-        svc := services.Sample{}.New(repo)
-        return controllers.Sample{}.New(svc)
-    }
-    ```
-
-- PATH 등록 : injectors/injector-core.go - Init 함수에서 path와 controller.func 를 연결해 준다.
-
-    ```go
-    // Init ...
-    func (h *Injector) Init() error {
-        // path grouping
-        apiv1 := h.Router.Group("/api/v1")
-
-        // Sample
-        h.Log.Errorf("[ PATH ] /api/v1/sample ........................................................... [ OK ]")
-        sample := Sample{}.Init(h)
-        apiv1.GET("/samples", sample.GetAll)
-        apiv1.GET("/sample/:id", sample.GetByID)
-        apiv1.POST("/sample", sample.Create)
-        apiv1.POST("/sample/update", sample.Update)
-        apiv1.DELETE("/sample/:id", sample.Delete)
-        return nil
-    }
-    ```
+// 핸들러에서 처리
+if ae, ok := err.(domain.AppError); ok {
+    return FailApp(c, ae)  // AppError의 HttpStatus, Code, Message를 응답에 반영
+}
+```
 
 ## 4. 빌드
 
@@ -484,7 +322,7 @@ REPO := repo.iris.tools/template/
 IMAGE ?= $(REPO)$(TARGET):$(VERSION)
 ```
 
-`TARGET`, `VERSION`, `BUILD_HASH`는 빌드 타임에 `common/appdata` 패키지 변수로 주입된다(`ldflags -X` 옵션).
+`TARGET`, `VERSION`, `BUILD_HASH`는 빌드 타임에 `internal/infrastructure/config` 패키지 변수로 주입된다(`ldflags -X` 옵션).
 
 ### 4.2. 명령어
 
@@ -546,214 +384,137 @@ IMAGE ?= $(REPO)$(TARGET):$(VERSION)
 
 ## 5. 테스트
 
-**golang/mock 프레임워크** 를 이용한 mock 생성과 유닛 테스트에 대해서 설명한다.
-
-Golang은 투명한 동작과 엄격한 타입이 특징인 만큼 Go에서는 Mocking을
-이용하는 것은 다른 언어에 비해 쉬운 편은 아닌 것처럼 느껴지기도 합니다.
+**go.uber.org/mock** 프레임워크를 이용한 mock 생성과 유닛 테스트에 대해서 설명한다.
 
 - interface로 선언된 변수에만 mock type을 할당할 수 있다.
-  ( 그래서 우리는 레이어 구조를 만들면서 각 레이거간 의존성을 인터페이스로 만들었습니다. )
-- mock type을 직접 정의하거나 mocking framework을 이용해 코드를 생성한다.
-  ( framework를 사용하더라도 내부는 직접 작성하고 실행해야 한다. )
+- `//go:generate` 어노테이션은 인터페이스가 정의된 파일에 직접 추가한다.
 
-### 5.1. 다른 프레임워크와의 비교
+### 5.1. mock 위치
 
-GoMock vs. Testify: Mocking frameworks for Go
-[gomock-vs-testify](https://blog.codecentric.de/2019/07/gomock-vs-testify/)
-위 링크에 내용이 잘 정리되어있으니 참고해보세요.( 영문사이트... )
-
-두 진영 비교
-[Star](https://umi0410.github.io/blog/golang/how-to-backend-in-go-testcode/star-comparison.png)
-우리는 어떤 진영을 선택할지는 중요하지 않습니다. 테스트를 만드는 것은 우리의 몫이기 때문입니다.
-
-### 5.2. 사용 예시
-
-이 프로젝트의 `sample` 코드를 기준으로 mock 생성부터 유닛 테스트 실행까지의 전체 흐름을 설명합니다.
-
-#### 레이어 구조 및 인터페이스 위치
+이 프로젝트에서 mock은 **테스트 파일과 같은 패키지** 내에 인라인으로 생성됩니다.
 
 ```
-controllers/sample.go  → SampleUsecase 인터페이스 정의 (services 레이어를 추상화)
-services/sample.go     → SampleRepository 인터페이스 정의 (repositories 레이어를 추상화)
-repositories/sample.go → 실제 DB 접근 구현체
+internal/usecase/sample/
+  interface.go              ← //go:generate 어노테이션 포함
+  mock_repository_test.go   ← 생성된 mock (sample_test 패키지)
+
+internal/adapter/inbound/http/handler/
+  sample_handler.go         ← //go:generate 어노테이션 포함
+  mock_usecase_test.go      ← 생성된 mock (handler_test 패키지)
 ```
 
-각 레이어는 아래 레이어를 인터페이스로만 의존하기 때문에, mock 으로 교체하여 독립적인 유닛 테스트가 가능합니다.
+### 5.2. `//go:generate` 지시어
 
----
+mock을 생성할 인터페이스가 있는 파일에 `//go:generate` 주석을 추가합니다.
 
-#### Step 1. `//go:generate` 지시어 추가
-
-mock 을 생성할 인터페이스가 있는 파일에 `//go:generate` 주석을 추가합니다.
-
-**`services/sample.go`** — `SampleRepository` 인터페이스에 추가
+**`internal/usecase/sample/interface.go`** — `Repository` 인터페이스에 추가
 
 ```go
-package services
+package sample
 
-//go:generate mockgen -destination=../mocks/mock_sample_repository.go -package=mocks github.com/mobigen/golang-web-template/services SampleRepository
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_repository_test.go -package=sample_test github.com/mobigen/golang-web-template/internal/usecase/sample Repository
 
-type SampleRepository interface {
-    GetAll() (*[]models.Sample, error)
-    GetByID(int) (*models.Sample, error)
-    Create(*models.Sample) (*models.Sample, error)
-    Update(*models.Sample) (*models.Sample, error)
-    Delete(int) (*models.Sample, error)
-}
-```
-
-**`controllers/sample.go`** — `SampleUsecase` 인터페이스에 추가
-
-```go
-package controllers
-
-//go:generate mockgen -destination=../mocks/mock_sample_usecase.go -package=mocks github.com/mobigen/golang-web-template/controllers SampleUsecase
-
-type SampleUsecase interface {
-    GetAll() (*[]models.Sample, error)
+type Repository interface {
+    GetAll() (*[]domain.Sample, error)
     // ...
 }
 ```
 
-`mockgen` 옵션 설명:
+**`internal/adapter/inbound/http/handler/sample_handler.go`** — `SampleUsecase` 인터페이스에 추가
 
-| 옵션                          | 설명                                                      |
-| ----------------------------- | --------------------------------------------------------- |
-| `-destination`                | 생성될 mock 파일 경로                                     |
-| `-package`                    | 생성될 mock 의 패키지 이름                                |
-| 마지막 인자 (패키지 경로)     | mock 을 생성할 인터페이스가 있는 패키지                   |
-| 마지막 인자 (인터페이스 이름) | mock 을 생성할 인터페이스 이름 (콤마로 여러 개 지정 가능) |
+```go
+package handler
 
----
+//go:generate go run go.uber.org/mock/mockgen -destination=mock_usecase_test.go -package=handler_test github.com/mobigen/golang-web-template/internal/adapter/inbound/http/handler SampleUsecase
 
-#### Step 2. mock 생성 (`make mocks`)
+type SampleUsecase interface {
+    GetAll() (*[]domain.Sample, error)
+    // ...
+}
+```
+
+### 5.3. mock 생성 (`make mocks`)
 
 ```sh
 make mocks
 ```
 
-이 명령은 내부적으로 `go generate ./...` 를 실행하여 `//go:generate` 지시어가 있는 모든 파일에서 mock 을 생성합니다.
+이 명령은 내부적으로 `go generate ./...` 를 실행하여 `//go:generate` 지시어가 있는 모든 파일에서 mock을 생성합니다.
 
-실행 결과로 `mocks/` 디렉토리에 파일이 생성됩니다:
+### 5.4. 유닛 테스트 작성
 
-```txt
-mocks/
-  mock_sample_repository.go   ← services.SampleRepository mock
-  mock_sample_usecase.go      ← controllers.SampleUsecase mock
-```
+**UseCase 레이어 테스트** (`internal/usecase/sample/get_test.go`)
 
-생성된 mock 의 구조 (예: `mock_sample_repository.go`):
+UseCase는 `Repository` 인터페이스에 의존하므로, `MockRepository`로 교체하여 테스트합니다.
 
 ```go
-// Code generated by MockGen. DO NOT EDIT.
-package mocks
-
-type MockSampleRepository struct {
-    ctrl     *gomock.Controller
-    recorder *MockSampleRepositoryMockRecorder
-}
-
-// NewMockSampleRepository creates a new mock instance.
-func NewMockSampleRepository(ctrl *gomock.Controller) *MockSampleRepository { ... }
-
-// EXPECT 를 통해 호출 기대값을 설정한다.
-func (m *MockSampleRepository) EXPECT() *MockSampleRepositoryMockRecorder { ... }
-
-func (m *MockSampleRepository) GetAll() (*[]models.Sample, error) { ... }
-// ... 나머지 메서드
-```
-
----
-
-#### Step 3. 유닛 테스트 작성
-
-**Service 레이어 테스트** (`services/sample_test.go`)
-
-Service 는 `SampleRepository` 인터페이스에 의존하므로, `MockSampleRepository` 로 교체하여 테스트합니다.
-
-```go
-package services_test
+package sample_test
 
 import (
     "testing"
-    gomock "github.com/golang/mock/gomock"
-    "github.com/mobigen/golang-web-template/mocks"
-    "github.com/mobigen/golang-web-template/models"
-    "github.com/mobigen/golang-web-template/services"
+    "go.uber.org/mock/gomock"
+    "github.com/mobigen/golang-web-template/internal/domain"
+    "github.com/mobigen/golang-web-template/internal/usecase/sample"
     "github.com/stretchr/testify/assert"
 )
 
-func TestSampleService_GetAll(t *testing.T) {
+func TestGetByIDUseCase_Execute(t *testing.T) {
     ctrl := gomock.NewController(t)
     defer ctrl.Finish()
 
-    // 1. mock 생성
-    mockRepo := mocks.NewMockSampleRepository(ctrl)
-    // 2. mock 을 주입하여 service 생성
-    svc := services.Sample{}.New(mockRepo)
+    mockRepo := NewMockRepository(ctrl)
+    uc := sample.NewGetByIDUseCase(mockRepo)
 
-    expected := &[]models.Sample{
-        {ID: 1, Name: "foo", Desc: "bar"},
-    }
-    // 3. mock 기대값 설정: GetAll() 이 1회 호출되면 expected 를 반환
-    mockRepo.EXPECT().GetAll().Return(expected, nil).Times(1)
+    expected := &domain.Sample{ID: 1, Name: "foo", Desc: "bar"}
+    mockRepo.EXPECT().GetByID(1).Return(expected, nil).Times(1)
 
-    // 4. 테스트 실행
-    result, err := svc.GetAll()
+    result, err := uc.Execute(1)
 
     assert.NoError(t, err)
     assert.Equal(t, expected, result)
 }
 ```
 
-**Controller 레이어 테스트** (`controllers/sample_test.go`)
+**Handler 레이어 테스트** (`internal/adapter/inbound/http/handler/sample_handler_test.go`)
 
-Controller 는 `SampleUsecase` 인터페이스에 의존하므로, `MockSampleUsecase` 로 교체합니다.
-HTTP 요청/응답은 `net/http/httptest` 와 echo 를 사용합니다.
+Handler는 `SampleUsecase` 인터페이스에 의존하므로, `MockSampleUsecase`로 교체합니다.
+HTTP 요청/응답은 `net/http/httptest`와 echo를 사용합니다.
 
 ```go
-package controllers_test
+package handler_test
 
 import (
     "encoding/json"
     "net/http"
     "net/http/httptest"
     "testing"
-    gomock "github.com/golang/mock/gomock"
+    "go.uber.org/mock/gomock"
     "github.com/labstack/echo/v5"
-    "github.com/mobigen/golang-web-template/controllers"
-    "github.com/mobigen/golang-web-template/mocks"
-    "github.com/mobigen/golang-web-template/models"
+    "github.com/mobigen/golang-web-template/internal/adapter/inbound/http/handler"
+    "github.com/mobigen/golang-web-template/internal/domain"
     "github.com/stretchr/testify/assert"
 )
 
-func TestSampleController_GetByID(t *testing.T) {
+func TestSampleHandler_GetByID(t *testing.T) {
     ctrl := gomock.NewController(t)
     defer ctrl.Finish()
 
-    // 1. mock 생성 및 controller 주입
-    mockUsecase := mocks.NewMockSampleUsecase(ctrl)
-    controller := controllers.Sample{}.New(mockUsecase)
+    mockUsecase := NewMockSampleUsecase(ctrl)
+    h := handler.NewSampleHandlerFromUsecase(mockUsecase)
 
-    expected := &models.Sample{ID: 1, Name: "foo", Desc: "bar"}
+    expected := &domain.Sample{ID: 1, Name: "foo", Desc: "bar"}
     mockUsecase.EXPECT().GetByID(1).Return(expected, nil).Times(1)
 
-    // 2. echo Context 구성 (echo v5 에서 path parameter 설정 방법)
     e := echo.New()
-    req := httptest.NewRequest(http.MethodGet, "/samples/1", nil)
+    req := httptest.NewRequest(http.MethodGet, "/sample/1", nil)
     rec := httptest.NewRecorder()
     c := e.NewContext(req, rec)
     c.SetPathValues(echo.PathValues{{Name: "id", Value: "1"}})
 
-    // 3. 테스트 실행 및 검증
-    err := controller.GetByID(c)
+    err := h.GetByID(c)
 
     assert.NoError(t, err)
     assert.Equal(t, http.StatusOK, rec.Code)
-
-    var result models.Sample
-    json.Unmarshal(rec.Body.Bytes(), &result)
-    assert.Equal(t, 1, result.ID)
 }
 ```
 
@@ -766,32 +527,10 @@ func TestSampleController_GetByID(t *testing.T) {
 > | `gomock.Any()`      | 어떤 인자값이어도 매칭   |
 > | `.Return(val, nil)` | 반환값 지정              |
 
----
-
-#### Step 4. 테스트 실행 (`make test`)
+### 5.5. 테스트 실행 (`make test`)
 
 ```sh
 make test
-```
-
-출력 예시:
-
-```sh
-make test
-=== RUN   TestSampleService_GetAll
---- PASS: TestSampleService_GetAll (0.00s)
-=== RUN   TestSampleService_GetByID
---- PASS: TestSampleService_GetByID (0.00s)
-=== RUN   TestSampleService_Create
---- PASS: TestSampleService_Create (0.00s)
-=== RUN   TestSampleController_GetAll
---- PASS: TestSampleController_GetAll (0.00s)
-=== RUN   TestSampleController_GetByID
---- PASS: TestSampleController_GetByID (0.00s)
---- PASS: TestSampleController_GetByID_InvalidID (0.00s)
-PASS
-ok  github.com/mobigen/golang-web-template/services      0.52s
-ok  github.com/mobigen/golang-web-template/controllers   0.89s
 ```
 
 커버리지 리포트 생성:
@@ -803,28 +542,33 @@ make coverage
 
 ## 6. 문서작성(Swagger)
 
-API 문서를 코드 개발과 분리하여 처리하는 것이 아닌, 코드 개발 단계에서 `// @` 형식의 주석으로 작성하고
-`make swag`(`swag init` 명령을 makefile 에 추가) 명령으로 자동 생성하는 방식입니다. **코드 주석이 곧 API 문서**가 됩니다.
+API 문서를 코드 개발 단계에서 `// @` 형식의 주석으로 작성하고 `make swag` 명령으로 자동 생성합니다.
+**코드 주석이 곧 API 문서**입니다.
 
-자세한 내용은 [swaggo/swag](https://github.com/swaggo/swag) 를 참고하세요.
+- 런타임 라이브러리: `github.com/swaggo/swag/v2`, `github.com/swaggo/echo-swagger/v2`
+- 문서 생성 CLI: `github.com/swaggo/swag/v2/cmd/swag` (Makefile에서 자동 설치)
+- Swagger UI: `http://localhost:8080/swagger/index.html`
+- 참고: [swaggo/swag](https://github.com/swaggo/swag), [swaggo/echo-swagger](https://github.com/swaggo/echo-swagger)
 
 ### 6.1. 서버 등록
 
-`infrastructures/router/server.go` 에서 Swagger 경로가 이미 등록되어 있습니다.
+`internal/adapter/inbound/http/router.go` 에서 이미 등록되어 있습니다.
 
 ```go
 import (
-    _ "github.com/mobigen/golang-web-template/docs/swagger"  // swag init 으로 생성된 docs 패키지
-    echoSwagger "github.com/swaggo/echo-swagger"
+    _ "github.com/mobigen/golang-web-template/docs/swagger"   // swag init으로 생성된 docs 패키지
+    echoSwagger "github.com/swaggo/echo-swagger/v2"
 )
 
-// Swagger
-r.GET("/swagger/*", echoSwagger.WrapHandler)
+// Swagger UI (OAS 2.0)
+// WrapHandlerV3: swag/v2 레지스트리에서 doc.json을 읽는다.
+// WrapHandler:   swag/v1 레지스트리를 읽으므로 사용하지 않는다.
+r.GET("/swagger/*", echoSwagger.WrapHandlerV3)
 ```
 
 ### 6.2. 작성 방법
 
-**① 서버 전체 정보** — `main.go` 의 `main()` 함수 위에 작성
+**① 서버 전체 정보** — `cmd/server/main.go` 의 `main()` 함수 위에 작성
 
 ```go
 // @title Golang Web Template API
@@ -840,7 +584,9 @@ r.GET("/swagger/*", echoSwagger.WrapHandler)
 func main() {
 ```
 
-**② 개별 API** — 각 handler 함수 위에 작성 (`controllers/version.go` 예시)
+**② 개별 API** — 각 handler 함수 위에 작성 (`handler/version_handler.go` 예시)
+
+swag/v2 는 Go 제네릭 문법 `[TypeParam]` 을 어노테이션에서 그대로 사용할 수 있습니다.
 
 ```go
 // GetVersion return app version
@@ -849,11 +595,25 @@ func main() {
 // @Tags version
 // @Accept  json
 // @Produce  json
-// @success 200 {object} controllers.HTTPResponse{data=appdata.VersionInfo} "app info(name, version, hash)"
+// @Success 200 {object} dto.HTTPResponse[config.VersionInfo] "app info(name, version, hash)"
 // @Router /version [get]
-func (controller *Version) GetVersion(c *echo.Context) error {
+func (h *VersionHandler) GetVersion(c *echo.Context) error {
     ...
 }
+```
+
+**③ 응답 타입 어노테이션 패턴**
+
+```go
+// 단일 객체
+// @Success 200 {object} dto.HTTPResponse[domain.Sample] "샘플"
+
+// 배열
+// @Success 200 {object} dto.HTTPResponse[[]domain.Sample] "샘플 목록"
+
+// 에러 (데이터 없음)
+// @Failure 400 {object} dto.HTTPResponse[any] "잘못된 요청"
+// @Failure 500 {object} dto.HTTPResponse[any] "서버 오류"
 ```
 
 주요 어노테이션:
@@ -870,30 +630,48 @@ func (controller *Version) GetVersion(c *echo.Context) error {
 | `@Failure`     | 실패 응답 코드 및 스키마                             |
 | `@Router`      | 경로 및 HTTP 메서드                                  |
 
-### 6.3. 문서 생성
+### 6.3. 모델 이름 단축 (`// @name`)
+
+기본적으로 swag는 패키지 경로 전체를 모델 이름으로 사용합니다.
+구조체 정의의 **닫는 괄호** 뒤에 `// @name <별칭>` 을 추가하면 Swagger UI에 표시되는 이름을 단축할 수 있습니다.
+
+```go
+// 적용 전: github_com_mobigen_golang-web-template_internal_domain.Sample
+// 적용 후: Sample
+type Sample struct {
+    ID   int    `json:"id"`
+    Name string `json:"name"`
+} // @name Sample
+
+// 제네릭 타입 예시 — 인스턴스화 시 "HTTPResponse-Sample" 형태로 표시됨
+type HTTPResponse[T any] struct {
+    IsSuccess bool   `json:"isSuccess"`
+    Code      int    `json:"code"`
+    Message   string `json:"message"`
+    Data      T      `json:"data,omitempty"`
+} // @name HTTPResponse
+```
+
+> **주의**: `type Foo struct { // @name Foo` (여는 괄호 뒤)나 `// @name Foo\ntype Foo struct` (doc comment)에 작성하면 동작하지 않습니다. 반드시 **닫는 괄호 뒤**에 작성해야 합니다.
+
+### 6.4. 문서 생성
 
 ```sh
 make swag
 ```
 
-외부 패키지 타입을 참조하는 경우 파싱 오류가 발생할 수 있습니다.
-다음과 같이 `Makefile`을 수정하여 `swag init`이 동작할 수 있도록 합니다.
+외부 패키지 타입을 참조할 때 파싱 오류가 발생하면 `--parseDependency --parseInternal` 플래그를 사용합니다 (Makefile에 이미 포함).
 
-```sh
-# ParseComment error: cannot find type definition: ...
-swag init --parseDependency --parseInternal --output docs/swagger
-```
-
-생성 결과로 `docs/` 디렉토리에 다음 파일들이 생성됩니다.
+생성 결과: `docs/swagger/` 디렉토리
 
 ```txt
 docs/swagger/
-  docs.go        ← Go 패키지 (서버 import 용)
-  swagger.json   ← Swagger 명세
+  docs.go        ← Go 패키지 (서버 import 용, swag/v2 레지스트리에 등록)
+  swagger.json   ← Swagger 명세 (OAS 2.0)
   swagger.yaml   ← Swagger 명세 (YAML 형식)
 ```
 
-### 6.4. 문서 확인
+### 6.5. 문서 확인
 
 서버 실행 후 브라우저에서 접속합니다.
 
@@ -917,15 +695,16 @@ config 파일 경로: `$APP_HOME/configs/$PROFILE.yaml`
 
 ```yaml
 log:
-  output: "stdout"       # stdout, file, both
+  output: "both"         # stdout, file, both
   level: "debug"         # debug, info, warn, error, silent
-  # 파일 출력 시 추가 옵션 (output: "file" 일 때 유효)
-  savePath: "logs"  # $APP_HOME 기준 상대경로 또는 절대경로
-  fileName: "app.log"  # 로그 파일의 이름, 백업 시 app-{2026-01-01T14:15:12.000}.log
-  sizePerFileMb: 100        # 로그 파일 최대 크기 (MB)
-  maxOfDay: 10              # 보관할 백업 파일 수
-  maxAge: 7                 # 로그 파일 보관 기간 (일)
-  compress: false           # 오래된 로그 파일 gzip 압축 여부
+  # 파일 출력 시 추가 옵션 (output: "file" 또는 "both" 일 때 유효)
+  logRotate:
+    savePath: "logs"       # $APP_HOME 기준 상대경로 또는 절대경로
+    fileName: "app.log"    # 로그 파일의 이름, 백업 시 app-{2026-01-01T14:15:12.000}.log
+    sizePerFileMb: 100     # 로그 파일 최대 크기 (MB)
+    maxOfDay: 10           # 보관할 백업 파일 수
+    maxAge: 7              # 로그 파일 보관 기간 (일)
+    compress: false        # 오래된 로그 파일 gzip 압축 여부
 datastore:
   database: "sqlite3"    # mysql, postgres, sqlite3
   endPoint:
@@ -955,10 +734,10 @@ server:
 
 ```sh
 # 기본 실행 (prod 프로파일, config 파일의 로그 레벨 사용)
-go run main.go
+go run cmd/server/main.go
 
 # 환경 변수 지정
-APP_HOME=$(pwd) PROFILE=prod LOG_LEVEL=debug go run main.go
+APP_HOME=$(pwd) PROFILE=prod LOG_LEVEL=debug go run cmd/server/main.go
 ```
 
 **빌드 후 실행**:
@@ -991,7 +770,7 @@ PROFILE : prod
 [ Router ] Listener Start ......................................................... [ OK ]
 ```
 
-**종료**
+#### 종료
 
 `Ctrl+C` 또는 `SIGTERM` 시그널을 보내면 graceful shutdown 됩니다.
 

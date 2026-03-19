@@ -13,10 +13,10 @@ IMAGE ?= $(REPO)$(TARGET):$(VERSION)
 ################################################################################
 
 GO ?= $(shell command -v go 2> /dev/null)
-MACHINE = $(shell uname -m)
 GOFLAGS ?= $(GOFLAGS:)
 BUILD_TIME := $(shell date -u +%Y%m%d.%H%M%S)
-BUILD_HASH := $(shell git rev-parse --short HEAD)
+# 커밋이 없을 때도 Makefile이 로드되도록 폴백
+BUILD_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo "nogit")
 
 # 현재 환경 감지 (멀티 아키텍처 빌드 분기용)
 UNAME_S := $(shell uname -s)
@@ -40,13 +40,16 @@ else ifeq ($(UNAME_S),Linux)
 else
   DETECTED_OS := $(shell echo $(UNAME_S) | tr '[:upper:]' '[:lower:]')
 endif
+GOOS ?= $(DETECTED_OS)
+GOARCH ?= $(DETECTED_ARCH)
+BUILD_PLATFORM := $(GOOS)/$(GOARCH)
 
 ################################################################################
 
 MODULE_NAME := $(shell head -1 go.mod | awk '{print $$2}')
-LDFLAGS = -X '$(MODULE_NAME)/common/appdata.Name=$(TARGET)'
-LDFLAGS += -X '$(MODULE_NAME)/common/appdata.Version=$(VERSION)'
-LDFLAGS += -X '$(MODULE_NAME)/common/appdata.BuildHash=$(BUILD_HASH)'
+LDFLAGS = -X '$(MODULE_NAME)/internal/infrastructure/config.Name=$(TARGET)'
+LDFLAGS += -X '$(MODULE_NAME)/internal/infrastructure/config.Version=$(VERSION)'
+LDFLAGS += -X '$(MODULE_NAME)/internal/infrastructure/config.BuildHash=$(BUILD_HASH)'
 
 ################################################################################
 ##                             Docker PARAMS                                 ##
@@ -60,7 +63,7 @@ DOCKER_BASE_IMAGE = alpine:3.23.3
 TOOLS_BIN_DIR := $(abspath bin)
 GO_INSTALL = ./scripts/go_install.sh
 
-MOCKGEN_VER := v1.6.0
+MOCKGEN_VER := v0.6.0
 MOCKGEN_BIN := mockgen
 MOCKGEN := $(TOOLS_BIN_DIR)/$(MOCKGEN_BIN)-$(MOCKGEN_VER)
 
@@ -68,7 +71,7 @@ GOLANGCI_LINT_VER := v2.11.3
 GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
 
-SWAG_VER := v1.16.6
+SWAG_VER := v2.0.0-rc5
 SWAG_BIN := swag
 SWAG := $(TOOLS_BIN_DIR)/$(SWAG_BIN)-$(SWAG_VER)
 
@@ -77,47 +80,32 @@ export GO111MODULE=on
 ## Checks the code style, tests, builds and bundles.
 all: lint build test coverage
 
-## Runs golangci-lint (vet, revive/golint 등 정적 분석). 설치: brew install golangci-lint
-## 루트에 go/ 폴더가 있으면 "outside main module" 오류가 나므로 삭제할 것 (이미 .gitignore에 있음)
 .PHONY: lint
 lint: $(GOLANGCI_LINT)
 	@echo Running golangci-lint
 	$(GOLANGCI_LINT) run ./...
 	@echo lint success
 
-# ## Remove golangci-lint v1 binary from bin/ (use system golangci-lint via brew instead).
-# .PHONY: lint-clean
-# lint-clean:
-# 	@rm -f $(TOOLS_BIN_DIR)/golangci-lint $(TOOLS_BIN_DIR)/golangci-lint-* 2>/dev/null || true
-# 	@echo "Removed golangci-lint from $(TOOLS_BIN_DIR). Use: brew install golangci-lint"
-
 .PHONY: build build-darwin-arm64 build-linux-amd64
 build: ## Build binary for current platform (detected: $(BUILD_PLATFORM))
 	@echo Building $(TARGET) for $(BUILD_PLATFORM)
 	CGO_ENABLED=1 $(GO) build -ldflags "$(LDFLAGS)" -gcflags all=-trimpath=$(PWD) -asmflags all=-trimpath=$(PWD) \
-	     -a -installsuffix cgo -o build/bin/$(TARGET) main.go
+	     -a -installsuffix cgo -o build/bin/$(TARGET) ./cmd/server
 
 build-darwin-arm64: ## Build for Mac (Apple Silicon, arm64)
 	@echo Building $(TARGET) for darwin/arm64
 	GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 $(GO) build -ldflags "$(LDFLAGS)" -gcflags all=-trimpath=$(PWD) -asmflags all=-trimpath=$(PWD) \
-	     -a -installsuffix cgo -o build/bin/$(TARGET)-darwin-arm64 main.go
+	     -a -installsuffix cgo -o build/bin/$(TARGET)-darwin-arm64 ./cmd/server
 
 build-linux-amd64: ## Build for Linux amd64 (e.g. deployment server)
 	@echo Building $(TARGET) for linux/amd64
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=1 $(GO) build -ldflags "$(LDFLAGS)" -gcflags all=-trimpath=$(PWD) -asmflags all=-trimpath=$(PWD) \
-	     -a -installsuffix cgo -o build/bin/$(TARGET)-linux-amd64 main.go
+	     -a -installsuffix cgo -o build/bin/$(TARGET)-linux-amd64 ./cmd/server
 
 # Generate mocks from the interfaces.
 .PHONY: mocks
 mocks:  $(MOCKGEN)
 	go generate ./...
-
-# Generate swagger docs from annotations.
-.PHONY: swag
-swag: $(SWAG)
-	@echo Running swag init
-	$(SWAG) init --output docs/swagger
-	@echo swag success
 
 .PHONY: verify-mocks
 verify-mocks:  $(MOCKGEN) mocks
@@ -125,13 +113,19 @@ verify-mocks:  $(MOCKGEN) mocks
 		echo "generated files are out of date, run make mocks"; exit 1; \
 	fi
 
+# Generate swagger docs from annotations.
+.PHONY: swag
+swag: $(SWAG)
+	@echo Running swag init
+	$(SWAG) init --generalInfo cmd/server/main.go --output docs/swagger --parseDependency --parseInternal
+	@echo swag success
+
 .PHONY: test
 test:
 	$(GO) test ./... -v -covermode=count -coverprofile=build/coverage.out
 
 .PHONY: coverage
-coverage: ## Run tests and generate HTML coverage report (cov-out.html)
-	$(GO) test ./... -covermode=count -coverprofile=build/coverage.out
+coverage: test
 	$(GO) tool cover -html=build/coverage.out -o build/cov-out.html
 	@echo "Coverage report: cov-out.html"
 
@@ -149,15 +143,19 @@ image:  ## Build the docker image for linux/amd64 (맥에서 실행해도 결과
 clean:
 	go clean -i -cache -testcache
 
+## Run(Dev)
+
+
+
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
 
 $(MOCKGEN): ## Build mockgen.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/golang/mock/mockgen $(MOCKGEN_BIN) $(MOCKGEN_VER)
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) go.uber.org/mock/mockgen $(MOCKGEN_BIN) $(MOCKGEN_VER)
 
 $(GOLANGCI_LINT): ## Build golangci-lint.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/golangci/golangci-lint/v2/cmd/golangci-lint $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
 
 $(SWAG): ## Build swag.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/swaggo/swag/cmd/swag $(SWAG_BIN) $(SWAG_VER)
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) github.com/swaggo/swag/v2/cmd/swag $(SWAG_BIN) $(SWAG_VER)

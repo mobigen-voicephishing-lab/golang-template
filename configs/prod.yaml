@@ -1,13 +1,15 @@
 log:
-  output: "both" # stdout, file, both
+  output: # stdout, file
+    - stdout
   level: "debug" # debug, info, warn, error, silent
   # 파일 출력 옵션 (output: "file, both" 일 때 유효)
-  savePath: "logs" # $APP_HOME 기준 상대경로 또는 절대경로
-  fileName: "app.log" # 로그 파일의 이름
-  sizePerFileMb: 100 # 로그 파일 최대 크기 (MB)
-  maxOfDay: 10 # 보관할 백업 파일 수
-  maxAge: 7 # 로그 파일 보관 기간 (일)
-  compress: false # 오래된 로그 파일 gzip 압축 여부
+  logRotate:
+    savePath: "logs" # $APP_HOME 기준 상대경로 또는 절대경로
+    fileName: "app.log" # 로그 파일의 이름
+    sizePerFileMb: 100 # 로그 파일 최대 크기 (MB)
+    maxOfDay: 10 # 보관할 백업 파일 수
+    maxAge: 7 # 로그 파일 보관 기간 (일)
+    compress: false # 오래된 로그 파일 gzip 압축 여부
 datastore:
   database: "sqlite3" # mysql, postgres, sqlite3
   endPoint:

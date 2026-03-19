@@ -1,0 +1,22 @@
+#!/bin/sh
+# Alpine용 사용자 생성 스크립트 (user_setup)
+# Dockerfile ENV: USER_UID, USER_NAME
+
+set -e
+
+: "${USER_UID:=1000}"
+: "${USER_NAME:=server}"
+
+# 사용자가 없으면 생성 (-D: no password, -u: UID)
+if ! id "$USER_NAME" >/dev/null 2>&1; then
+  adduser -D -u "$USER_UID" "$USER_NAME"
+fi
+
+# 애플리케이션 디렉터리 소유권 부여
+if [ -d /app/bin ]; then
+  chown -R "$USER_NAME:$USER_NAME" /app/bin
+fi
+
+if [ -d /app ]; then
+  chown "$USER_NAME:$USER_NAME" /app
+fi

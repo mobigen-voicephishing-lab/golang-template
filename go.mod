@@ -3,14 +3,14 @@ module github.com/mobigen/golang-web-template
 go 1.26
 
 require (
-	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
-	github.com/golang/mock v1.6.0 // mock
 	github.com/labstack/echo/v5 v5.0.4 // echo web server framework
 	github.com/sirupsen/logrus v1.9.4 // Log
 	github.com/spf13/viper v1.21.0 // Env, Config
 	github.com/stretchr/testify v1.11.1 // Testify
-	github.com/swaggo/echo-swagger v1.5.0 // Swagger
-	github.com/swaggo/swag v1.16.6 // Swagger
+	github.com/swaggo/echo-swagger/v2 v2.0.1
+	github.com/swaggo/swag v1.16.2 // indirect
+	github.com/swaggo/swag/v2 v2.0.0-rc5
+	go.uber.org/mock v0.6.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // logrotate
 	gorm.io/driver/mysql v1.6.0 // database driver
 	gorm.io/driver/postgres v1.6.0 // database driver
@@ -50,9 +50,8 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/sv-tools/openapi v0.2.1 // indirect
-	github.com/swaggo/files/v2 v2.0.2 // indirect
-	github.com/swaggo/swag/v2 v2.0.0-rc4 // indirect
+	github.com/sv-tools/openapi v0.4.0 // indirect
+	github.com/swaggo/files/v2 v2.0.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/mod v0.34.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
@@ -63,5 +62,5 @@ require (
 	golang.org/x/tools v0.42.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
+	sigs.k8s.io/yaml v1.4.0 // indirect
 )
