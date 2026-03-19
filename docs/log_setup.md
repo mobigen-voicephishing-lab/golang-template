@@ -12,21 +12,21 @@
 
 ### 기본 옵션
 
-| 키       | 타입   | 기본값   | 설명                                                          |
-| -------- | ------ | -------- | ------------------------------------------------------------- |
-| `output` | string | `stdout` | 로그 출력 대상. `stdout`, `file`, `both` 중 하나              |
-| `level`  | string | `debug`  | 로그 레벨. `debug`, `info`, `warn`, `error`, `silent`         |
+| 키       | 타입   | 기본값   | 설명                                                  |
+| -------- | ------ | -------- | ----------------------------------------------------- |
+| `output` | string | `stdout` | 로그 출력 대상. `stdout`, `file`, `both` 중 하나      |
+| `level`  | string | `debug`  | 로그 레벨. `debug`, `info`, `warn`, `error`, `silent` |
 
 ### 파일 출력 옵션 (`output: "file"` 또는 `output: "both"` 일 때 유효)
 
-| 키              | 타입   | 예시       | 설명                                                        |
-| --------------- | ------ | ---------- | ----------------------------------------------------------- |
-| `savePath`      | string | `logs`     | 로그 파일 디렉토리. 상대경로 시 `$APP_HOME` 기준            |
-| `fileName`      | string | `app.log`  | 로그 파일 이름. 백업 시 `app-{timestamp}.log` 형식으로 저장 |
-| `sizePerFileMb` | int    | `100`      | 파일 최대 크기 (MB). 초과 시 로테이션                        |
-| `maxOfDay`      | int    | `10`       | 보관할 백업 파일 수                                          |
-| `maxAge`        | int    | `7`        | 로그 파일 보관 기간 (일)                                     |
-| `compress`      | bool   | `false`    | 오래된 백업 파일 gzip 압축 여부                             |
+| 키              | 타입   | 예시      | 설명                                                        |
+| --------------- | ------ | --------- | ----------------------------------------------------------- |
+| `savePath`      | string | `logs`    | 로그 파일 디렉토리. 상대경로 시 `$APP_HOME` 기준            |
+| `fileName`      | string | `app.log` | 로그 파일 이름. 백업 시 `app-{timestamp}.log` 형식으로 저장 |
+| `sizePerFileMb` | int    | `100`     | 파일 최대 크기 (MB). 초과 시 로테이션                       |
+| `maxOfDay`      | int    | `10`      | 보관할 백업 파일 수                                         |
+| `maxAge`        | int    | `7`       | 로그 파일 보관 기간 (일)                                    |
+| `compress`      | bool   | `false`   | 오래된 백업 파일 gzip 압축 여부                             |
 
 ---
 
@@ -36,7 +36,8 @@
 
 ```yaml
 log:
-  output: "stdout"
+  output:
+    - "stdout"
   level: "info"
 ```
 
@@ -44,28 +45,33 @@ log:
 
 ```yaml
 log:
-  output: "file"
+  output:
+    - "file"
   level: "info"
-  savePath: "logs"        # $APP_HOME/logs/ 디렉토리에 저장
-  fileName: "app.log"     # 실제 파일: $APP_HOME/logs/app.log
-  sizePerFileMb: 100      # 100MB 초과 시 로테이션
-  maxOfDay: 10            # 최대 10개 백업 파일 보관
-  maxAge: 7               # 7일 이상 된 파일 삭제
-  compress: true          # 백업 파일 gzip 압축
+  logRotate:
+    savePath: "logs"        # $APP_HOME/logs/ 디렉토리에 저장
+    fileName: "app.log"     # 실제 파일: $APP_HOME/logs/app.log
+    sizePerFileMb: 100      # 100MB 초과 시 로테이션
+    maxOfDay: 10            # 최대 10개 백업 파일 보관
+    maxAge: 7               # 7일 이상 된 파일 삭제
+    compress: true          # 백업 파일 gzip 압축
 ```
 
 ### stdout + 파일 동시 출력
 
 ```yaml
 log:
-  output: "both"
+  output:
+    - "stdout"
+    - "file"
   level: "debug"
-  savePath: "logs"
-  fileName: "app.log"
-  sizePerFileMb: 100
-  maxOfDay: 10
-  maxAge: 7
-  compress: false
+  logRotate:
+    savePath: "logs"
+    fileName: "app.log"
+    sizePerFileMb: 100
+    maxOfDay: 10
+    maxAge: 7
+    compress: false
 ```
 
 ---
